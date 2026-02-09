@@ -1,0 +1,65 @@
+[package]
+name = "poneglyph"
+version = "0.1.0"
+edition = "2021"
+description = "NTDS.dit forensic analysis and visualization tool for GolDRoger"
+license = "MIT"
+
+[[bin]]
+name = "poneglyph"
+path = "src/main.rs"
+
+[lib]
+name = "poneglyph_lib"
+path = "src/lib.rs"
+
+[dependencies]
+# ESE database access
+libesedb = "0.2"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Progress reporting
+indicatif = "0.17"
+
+# Timestamps
+chrono = { version = "0.4", features = ["serde"] }
+
+# Hex encoding
+hex = "0.4"
+
+# Byte order
+byteorder = "1.5"
+
+# Logging
+log = "0.4"
+env_logger = "0.11"
+
+# Registry hive parsing (BootKey extraction)
+nt-hive = "0.3"
+
+# Cryptography (RustCrypto)
+aes = "0.8"
+cbc = { version = "0.1", features = ["block-padding"] }
+des = "0.8"
+md-5 = "0.10"
+cipher = { version = "0.4", features = ["block-padding"] }
+
+# Zip archive (for collect --zip)
+zip = { version = "2.2", default-features = false, features = ["deflate"] }
+
+# UUID (for BloodHound objectid)
+uuid = { version = "1", features = ["v4"] }
+
+[profile.release]
+opt-level = 2
+lto = true

@@ -1,0 +1,32 @@
+# Rust
+/target/
+
+# Build artifacts
+*.exe
+hashes.txt
+
+# Runtime output
+/test-output/
+/poneglyph-output/
+/poneglyph-forensics/
+/poneglyph-collect/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Evidence files (never commit)
+*.dit
+SYSTEM
+SECURITY
+SAM
