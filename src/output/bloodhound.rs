@@ -42,6 +42,7 @@ fn write_users_json(dir: &Path, domain: &str, users: &[AdUser]) -> Result<()> {
         });
 
         json!({
+            "ObjectIdentifier": object_id,
             "Properties": {
                 "domain": domain,
                 "name": name,
@@ -88,6 +89,7 @@ fn write_groups_json(dir: &Path, domain: &str, groups: &[AdGroup]) -> Result<()>
         let object_id = g.sid.as_deref().unwrap_or("");
 
         json!({
+            "ObjectIdentifier": object_id,
             "Properties": {
                 "domain": domain,
                 "name": name,
@@ -127,6 +129,7 @@ fn write_computers_json(dir: &Path, domain: &str, computers: &[AdComputer]) -> R
         });
 
         json!({
+            "ObjectIdentifier": object_id,
             "Properties": {
                 "domain": domain,
                 "name": name,
@@ -179,6 +182,7 @@ fn write_domains_json(
     }).collect();
 
     let data = vec![json!({
+        "ObjectIdentifier": &domain_sid_str,
         "Properties": {
             "domain": domain,
             "name": domain,

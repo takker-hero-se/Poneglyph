@@ -192,7 +192,11 @@ fn cmd_info(ntds_path: &std::path::Path) -> Result<()> {
     println!("{:<30} {:>10}", "Name", "Records");
     println!("{}", "-".repeat(42));
     for table_info in &info.tables {
-        println!("{:<30} {:>10}", table_info.name, table_info.record_count);
+        if table_info.record_count >= 0 {
+            println!("{:<30} {:>10}", table_info.name, table_info.record_count);
+        } else {
+            println!("{:<30} {:>10}", table_info.name, "N/A");
+        }
     }
 
     Ok(())

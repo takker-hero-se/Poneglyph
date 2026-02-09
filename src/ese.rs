@@ -47,12 +47,17 @@ impl NtdsDatabase {
             let name = table.name()
                 .context("Failed to get table name")?;
 
-            let record_count = table.count_records()
-                .context(format!("Failed to count records for table '{}'", name))?;
+            let record_count = match table.count_records() {
+                Ok(n) => n as i64,
+                Err(e) => {
+                    log::warn!("Could not count records for table '{}': {}", name, e);
+                    -1
+                }
+            };
 
             tables.push(TableInfo {
                 name,
-                record_count: record_count as i64,
+                record_count,
             });
         }
 

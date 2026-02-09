@@ -60,6 +60,10 @@ zip = { version = "2.2", default-features = false, features = ["deflate"] }
 # UUID (for BloodHound objectid)
 uuid = { version = "1", features = ["v4"] }
 
+# Patch libesedb-sys for Windows Server 2025 32KB page support (itagState fix)
+[patch.crates-io]
+libesedb-sys = { path = "C:/dev/libesedb-sys-patched" }
+
 [profile.release]
 opt-level = 2
 lto = true

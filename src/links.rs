@@ -17,8 +17,15 @@ pub fn resolve_group_memberships(db: &NtdsDatabase) -> Result<HashMap<i32, Vec<i
     let table = db.link_table()
         .context("Failed to open link_table")?;
 
-    let record_count = table.count_records()
-        .context("Failed to count link_table records")?;
+    let record_count = match table.count_records() {
+        Ok(n) => n,
+        Err(e) => {
+            log::warn!("count_records() failed for link_table: {}. Trying iterative scan...", e);
+            // Fallback: try iterating records without knowing the count.
+            // Use a generous upper bound (32KB pages can hold many more links).
+            return resolve_group_memberships_iterative(&table);
+        }
+    };
 
     log::info!("Scanning {} link_table records for group memberships...", record_count);
 
@@ -96,6 +103,72 @@ pub fn resolve_group_memberships(db: &NtdsDatabase) -> Result<HashMap<i32, Vec<i
         memberships.len(),
         memberships.values().map(|v| v.len()).sum::<usize>()
     ));
+
+    Ok(memberships)
+}
+
+/// Fallback: iterate link_table records without relying on count_records().
+/// Used when the B-tree page traversal fails (e.g., WS2025 32KB pages).
+fn resolve_group_memberships_iterative(table: &libesedb::Table) -> Result<HashMap<i32, Vec<i32>>> {
+    let col_count = table.count_columns().unwrap_or(0);
+    let mut link_dnt_col: Option<i32> = None;
+    let mut backlink_dnt_col: Option<i32> = None;
+    let mut link_base_col: Option<i32> = None;
+
+    for i in 0..col_count {
+        if let Ok(col) = table.column(i) {
+            if let Ok(name) = col.name() {
+                match name.as_str() {
+                    "link_DNT" => link_dnt_col = Some(i),
+                    "backlink_DNT" => backlink_dnt_col = Some(i),
+                    "link_base" => link_base_col = Some(i),
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    if link_dnt_col.is_none() || backlink_dnt_col.is_none() {
+        anyhow::bail!("Cannot find link_DNT/backlink_DNT columns in link_table");
+    }
+
+    let mut memberships: HashMap<i32, Vec<i32>> = HashMap::new();
+    let mut consecutive_errors = 0u32;
+    let mut i = 0i32;
+
+    log::info!("Iterating link_table records (fallback mode)...");
+
+    loop {
+        match table.record(i) {
+            Ok(record) => {
+                consecutive_errors = 0;
+
+                if let Some(base) = get_i32_value(&record, link_base_col) {
+                    if base == 1 {
+                        if let (Some(group_dnt), Some(member_dnt)) =
+                            (get_i32_value(&record, link_dnt_col), get_i32_value(&record, backlink_dnt_col))
+                        {
+                            memberships.entry(group_dnt).or_default().push(member_dnt);
+                        }
+                    }
+                }
+            }
+            Err(_) => {
+                consecutive_errors += 1;
+                // Stop after 100 consecutive errors — we've likely passed the end
+                if consecutive_errors > 100 {
+                    break;
+                }
+            }
+        }
+        i += 1;
+    }
+
+    let total_links: usize = memberships.values().map(|v| v.len()).sum();
+    log::info!(
+        "Iterative scan: resolved {} groups with {} membership links (scanned {} records)",
+        memberships.len(), total_links, i
+    );
 
     Ok(memberships)
 }

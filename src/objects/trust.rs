@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ese::NtdsDatabase;
 use crate::schema;
-use crate::objects::{parse_sid, get_string_value, get_i32_value, get_i64_value, get_binary_value, filetime_to_string};
+use crate::objects::{parse_sid, get_i32_value, get_i64_value, get_binary_value, filetime_to_string};
 
 /// Represents a domain trust relationship extracted from NTDS.dit.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,6 +38,14 @@ fn trust_type_str(tt: i32) -> String {
     }
 }
 
+/// Decode a UTF-16LE byte slice into a String, stripping trailing nulls.
+fn decode_utf16le(data: &[u8]) -> String {
+    let u16s: Vec<u16> = data.chunks_exact(2)
+        .map(|c| u16::from_le_bytes([c[0], c[1]]))
+        .collect();
+    String::from_utf16_lossy(&u16s).trim_end_matches('\0').to_string()
+}
+
 /// Extract all trust relationships from the datatable.
 pub fn extract_trusts(db: &NtdsDatabase) -> Result<Vec<AdTrust>> {
     let table = db.datatable()
@@ -46,15 +54,16 @@ pub fn extract_trusts(db: &NtdsDatabase) -> Result<Vec<AdTrust>> {
     let record_count = table.count_records()
         .context("Failed to count records")?;
 
-    let partner_col = schema::find_column_index(&table, "ATTm590295");    // trustPartner
+    // trustPartner and trustAttributes are stored as binary (not string/int)
+    let partner_col = schema::find_column_index(&table, "ATTb590295");    // trustPartner (binary/UTF-16LE)
     let direction_col = schema::find_column_index(&table, "ATTj590294");  // trustDirection
     let type_col = schema::find_column_index(&table, "ATTj590293");       // trustType
-    let attr_col = schema::find_column_index(&table, "ATTj590296");       // trustAttributes
+    let attr_col = schema::find_column_index(&table, "ATTb590296");       // trustAttributes (binary)
     let sid_col = schema::find_column_index(&table, "ATTr589970");        // objectSid
     let created_col = schema::find_column_index(&table, "ATTl131074");
 
     if partner_col.is_none() {
-        log::warn!("trustPartner column not found — no trusts will be extracted");
+        log::warn!("trustPartner column (ATTb590295) not found — no trusts will be extracted");
         return Ok(Vec::new());
     }
 
@@ -66,14 +75,26 @@ pub fn extract_trusts(db: &NtdsDatabase) -> Result<Vec<AdTrust>> {
             Err(_) => continue,
         };
 
-        let partner = match get_string_value(&record, partner_col) {
-            Some(s) if !s.is_empty() => s,
+        // trustPartner is stored as UTF-16LE binary
+        let partner = match get_binary_value(&record, partner_col) {
+            Some(data) if data.len() >= 2 => decode_utf16le(&data),
             _ => continue,
         };
 
+        if partner.is_empty() {
+            continue;
+        }
+
         let direction = get_i32_value(&record, direction_col).unwrap_or(0);
         let trust_type = get_i32_value(&record, type_col).unwrap_or(0);
-        let attributes = get_i32_value(&record, attr_col).unwrap_or(0);
+        // trustAttributes is stored as binary — interpret as little-endian i32
+        let attributes = get_binary_value(&record, attr_col)
+            .and_then(|d| if d.len() >= 4 {
+                Some(i32::from_le_bytes([d[0], d[1], d[2], d[3]]))
+            } else {
+                None
+            })
+            .unwrap_or(0);
 
         let sid = get_binary_value(&record, sid_col)
             .as_ref()
