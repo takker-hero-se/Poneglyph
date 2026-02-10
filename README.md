@@ -1,34 +1,31 @@
 # Poneglyph
 
 Active Directory NTDS.dit forensic analysis tool.
-Active Directory の NTDS.dit フォレンジック分析ツール。
+
+**[日本語版 README はこちら](README.ja.md)**
 
 Poneglyph parses NTDS.dit (Active Directory database) offline and extracts users, computers, groups, trusts, password hashes, and performs forensic analysis including tombstone recovery and anomaly detection.
 
-Poneglyph は NTDS.dit（Active Directory データベース）をオフラインで解析し、ユーザー・コンピューター・グループ・信頼関係・パスワードハッシュを抽出します。さらに、削除オブジェクトの復元や異常検知などのフォレンジック分析も実行できます。
+## Features
 
-## Features / 機能
+- **ESE Database Parsing** - Direct NTDS.dit access via libesedb (no Active Directory required)
+- **Windows Server 2025 Support** - 32KB ESE page format support (patched libesedb)
+- **Password Hash Extraction** - BootKey + PEK decryption pipeline for NT/LM hash recovery
+- **Full Object Extraction** - Users, computers, groups, GPOs, trust relationships
+- **BloodHound Integration** - BloodHound CE v5 compatible JSON output
+- **Graph Visualization** - D3.js force-directed graph JSON for relationship mapping
+- **Forensic Timeline** - CSV timeline of AD object changes (plaso compatible)
+- **Tombstone Recovery** - Deleted object recovery from ESE tombstones
+- **Anomaly Detection** - 14-rule security assessment engine with MITRE ATT&CK mapping
+- **Live Collection** - Volume Shadow Copy based NTDS.dit acquisition from running DCs
 
-- **ESE Database Parsing / ESEデータベース解析** - Direct NTDS.dit access via libesedb (no Active Directory required) / libesedb による直接アクセス（AD環境不要）
-- **Windows Server 2025 Support / Windows Server 2025 対応** - 32KB ESE page format support (patched libesedb) / 32KB ESE ページ形式のサポート（パッチ適用済み libesedb）
-- **Password Hash Extraction / パスワードハッシュ抽出** - BootKey + PEK decryption pipeline for NT/LM hash recovery / BootKey + PEK 復号パイプラインによる NT/LM ハッシュ復元
-- **Full Object Extraction / 全オブジェクト抽出** - Users, computers, groups, GPOs, trust relationships / ユーザー、コンピューター、グループ、GPO、信頼関係
-- **BloodHound Integration / BloodHound連携** - BloodHound CE v5 compatible JSON output / BloodHound CE v5 互換の JSON 出力
-- **Graph Visualization / グラフ可視化** - D3.js force-directed graph JSON for relationship mapping / D3.js フォースグラフ用 JSON（関係性マッピング）
-- **Forensic Timeline / フォレンジックタイムライン** - CSV timeline of AD object changes (plaso compatible) / AD オブジェクト変更の CSV タイムライン（plaso 互換）
-- **Tombstone Recovery / 削除オブジェクト復元** - Deleted object recovery from ESE tombstones / ESE トゥームストーンからの削除オブジェクト復元
-- **Anomaly Detection / 異常検知** - 14-rule security assessment engine with MITRE ATT&CK mapping / MITRE ATT&CK マッピング付き 14 ルールのセキュリティ診断エンジン
-- **Live Collection / ライブ収集** - Volume Shadow Copy based NTDS.dit acquisition from running DCs / ボリュームシャドウコピーによる稼働中 DC からの NTDS.dit 取得
-
-## Installation / インストール
+## Installation
 
 Download the latest release from the [Releases](https://github.com/takker-hero-se/Poneglyph/releases) page.
 
-[Releases](https://github.com/takker-hero-se/Poneglyph/releases) ページから最新版をダウンロードしてください。
+## Usage
 
-## Usage / 使い方
-
-### Full Dump (All Outputs) / フルダンプ（全出力）
+### Full Dump (All Outputs)
 
 ```
 poneglyph dump --ntds ntds.dit --system SYSTEM --all
@@ -36,20 +33,18 @@ poneglyph dump --ntds ntds.dit --system SYSTEM --all
 
 Generates BloodHound JSON, graph, timeline, and hashcat output in `poneglyph-output/`.
 
-BloodHound JSON、グラフ、タイムライン、hashcat 出力を `poneglyph-output/` に生成します。
-
-### Hash Extraction / ハッシュ抽出
+### Hash Extraction
 
 ```
 poneglyph hashes --ntds ntds.dit --system SYSTEM
 ```
 
-Output format (hashcat/secretsdump compatible) / 出力形式（hashcat/secretsdump 互換）:
+Output format (hashcat/secretsdump compatible):
 ```
 Administrator:500:aad3b435b51404eeaad3b435b51404ee:8846f7eaee8fb117ad06bdd830b7586c:::
 ```
 
-### Forensic Analysis / フォレンジック分析
+### Forensic Analysis
 
 ```
 poneglyph forensics --ntds ntds.dit --acls
@@ -57,21 +52,19 @@ poneglyph forensics --ntds ntds.dit --acls
 
 Runs tombstone recovery and 14 anomaly detection rules. `--acls` enables DCSync ACL analysis.
 
-削除オブジェクト復元と 14 個の異常検知ルールを実行します。`--acls` で DCSync ACL 分析を有効化します。
-
-### User Listing / ユーザー一覧
+### User Listing
 
 ```
 poneglyph users --ntds ntds.dit --format table
 ```
 
-### Database Info / データベース情報
+### Database Info
 
 ```
 poneglyph info --ntds ntds.dit
 ```
 
-### Live Collection (on Domain Controller) / ライブ収集（DC 上で実行）
+### Live Collection (on Domain Controller)
 
 ```
 poneglyph collect --zip
@@ -79,11 +72,9 @@ poneglyph collect --zip
 
 Uses Volume Shadow Copy to safely acquire NTDS.dit and SYSTEM hive.
 
-ボリュームシャドウコピーを使用して NTDS.dit と SYSTEM ハイブを安全に取得します。
+## Batch Scripts
 
-## Batch Scripts / バッチスクリプト
-
-### `run-all.bat` - Full Offline Analysis / オフライン全分析
+### `run-all.bat` - Full Offline Analysis
 
 ```
 run-all.bat <ntds.dit> <SYSTEM> [output_dir]
@@ -91,9 +82,7 @@ run-all.bat <ntds.dit> <SYSTEM> [output_dir]
 
 Runs all 9 analysis steps: info, users (table/JSON/CSV), hashes (hashcat/john/pwdump), forensics (with ACL), and full dump (BloodHound/Graph/Timeline).
 
-9つの分析ステップをすべて実行: info、users（table/JSON/CSV）、hashes（hashcat/john/pwdump）、forensics（ACL付き）、フルダンプ（BloodHound/Graph/Timeline）。
-
-### `collect.bat` - Live DC Collection / ライブDC収集
+### `collect.bat` - Live DC Collection
 
 ```
 collect.bat [output_dir]
@@ -101,157 +90,142 @@ collect.bat [output_dir]
 
 Collects NTDS.dit and SYSTEM hive from a running Domain Controller via VSS. Requires Administrator privileges. Default output directory includes domain name and hostname: `poneglyph-collect_<DOMAIN>_<HOSTNAME>`.
 
-稼働中のドメインコントローラーからVSSでNTDS.ditとSYSTEMハイブを収集。管理者権限が必要。デフォルト出力先にドメイン名とホスト名を含みます: `poneglyph-collect_<DOMAIN>_<HOSTNAME>`
+## CLI Reference
 
-## CLI Reference / CLI リファレンス
-
-| Subcommand / サブコマンド | Description / 説明 | Required Flags / 必須フラグ |
+| Subcommand | Description | Required Flags |
 |------------|-------------|----------------|
-| `info` | Display database tables and record counts / DB テーブルとレコード数の表示 | `--ntds` |
-| `users` | Extract user accounts / ユーザーアカウント抽出 | `--ntds` |
-| `hashes` | Extract password hashes / パスワードハッシュ抽出 | `--ntds`, `--system` |
-| `dump` | Full extraction with all output formats / 全形式での完全抽出 | `--ntds` |
-| `forensics` | Tombstone recovery + anomaly detection / 削除復元 + 異常検知 | `--ntds` |
-| `collect` | Acquire NTDS.dit from live DC / 稼働中DCからNTDS.dit取得 | (none / なし) |
+| `info` | Display database tables and record counts | `--ntds` |
+| `users` | Extract user accounts | `--ntds` |
+| `hashes` | Extract password hashes | `--ntds`, `--system` |
+| `dump` | Full extraction with all output formats | `--ntds` |
+| `forensics` | Tombstone recovery + anomaly detection | `--ntds` |
+| `collect` | Acquire NTDS.dit from live DC | (none) |
 
-### `users` Options / `users` オプション
+### `users` Options
 
-| Flag / フラグ | Description / 説明 |
+| Flag | Description |
 |------|-------------|
-| `--ntds <PATH>` | Path to NTDS.dit file / NTDS.dit ファイルのパス |
-| `-f, --format <FMT>` | Output format: `table`, `json`, `csv` (default: `table`) / 出力形式（デフォルト: `table`） |
-| `-o, --output <PATH>` | Output file path (stdout if omitted) / 出力ファイルパス（省略時は標準出力） |
-| `--include-disabled` | Include disabled accounts / 無効化されたアカウントを含む |
+| `--ntds <PATH>` | Path to NTDS.dit file |
+| `-f, --format <FMT>` | Output format: `table`, `json`, `csv` (default: `table`) |
+| `-o, --output <PATH>` | Output file path (stdout if omitted) |
+| `--include-disabled` | Include disabled accounts |
 
-### `hashes` Options / `hashes` オプション
+### `hashes` Options
 
-| Flag / フラグ | Description / 説明 |
+| Flag | Description |
 |------|-------------|
-| `--ntds <PATH>` | Path to NTDS.dit file / NTDS.dit ファイルのパス |
-| `-s, --system <PATH>` | Path to SYSTEM registry hive / SYSTEM レジストリハイブのパス |
-| `-o, --output <PATH>` | Output file path (stdout if omitted) / 出力ファイルパス（省略時は標準出力） |
-| `--format <FMT>` | Output format: `hashcat`, `john`, `pwdump` (default: `hashcat`) / 出力形式（デフォルト: `hashcat`） |
+| `--ntds <PATH>` | Path to NTDS.dit file |
+| `-s, --system <PATH>` | Path to SYSTEM registry hive |
+| `-o, --output <PATH>` | Output file path (stdout if omitted) |
+| `--format <FMT>` | Output format: `hashcat`, `john`, `pwdump` (default: `hashcat`) |
 
-### `forensics` Options / `forensics` オプション
+### `forensics` Options
 
-| Flag / フラグ | Description / 説明 |
+| Flag | Description |
 |------|-------------|
-| `--ntds <PATH>` | Path to NTDS.dit file / NTDS.dit ファイルのパス |
-| `-o, --output-dir <DIR>` | Output directory (default: `poneglyph-forensics`) / 出力ディレクトリ（デフォルト: `poneglyph-forensics`） |
-| `--acls` | Include ACL analysis for DCSync detection (slower) / DCSync 検出用 ACL 分析を含む（低速） |
+| `--ntds <PATH>` | Path to NTDS.dit file |
+| `-o, --output-dir <DIR>` | Output directory (default: `poneglyph-forensics`) |
+| `--acls` | Include ACL analysis for DCSync detection (slower) |
 
-### `dump` Options / `dump` オプション
+### `dump` Options
 
-| Flag / フラグ | Description / 説明 |
+| Flag | Description |
 |------|-------------|
-| `--ntds <PATH>` | Path to NTDS.dit file / NTDS.dit ファイルのパス |
-| `--system <PATH>` | Path to SYSTEM registry hive (for hash extraction) / SYSTEM レジストリハイブのパス（ハッシュ抽出用） |
-| `-o, --output-dir <DIR>` | Output directory (default: `poneglyph-output`) / 出力ディレクトリ（デフォルト: `poneglyph-output`） |
-| `--domain <NAME>` | Domain name (auto-detected if omitted) / ドメイン名（省略時は自動検出） |
-| `--bloodhound` | Generate BloodHound CE JSON / BloodHound CE JSON を生成 |
-| `--hashcat` | Generate hashcat-format hashes / hashcat 形式ハッシュを生成 |
-| `--graph` | Generate D3.js graph JSON / D3.js グラフ JSON を生成 |
-| `--timeline` | Generate forensic timeline CSV / フォレンジックタイムライン CSV を生成 |
-| `--all` | Generate all output formats / 全出力形式を生成 |
+| `--ntds <PATH>` | Path to NTDS.dit file |
+| `--system <PATH>` | Path to SYSTEM registry hive (for hash extraction) |
+| `-o, --output-dir <DIR>` | Output directory (default: `poneglyph-output`) |
+| `--domain <NAME>` | Domain name (auto-detected if omitted) |
+| `--bloodhound` | Generate BloodHound CE JSON |
+| `--hashcat` | Generate hashcat-format hashes |
+| `--graph` | Generate D3.js graph JSON |
+| `--timeline` | Generate forensic timeline CSV |
+| `--all` | Generate all output formats |
 
-### `collect` Options / `collect` オプション
+### `collect` Options
 
-| Flag / フラグ | Description / 説明 |
+| Flag | Description |
 |------|-------------|
-| `-o, --output-dir <DIR>` | Output directory (default: `poneglyph-collect`) / 出力ディレクトリ（デフォルト: `poneglyph-collect`） |
-| `--ntds-path <PATH>` | Custom NTDS.dit path (auto-detect if omitted) / カスタム NTDS.dit パス（省略時は自動検出） |
-| `--no-cleanup` | Don't delete the shadow copy after collection / 収集後にシャドウコピーを削除しない |
-| `--zip` | Create a zip archive of collected files / 収集ファイルの zip アーカイブを作成 |
+| `-o, --output-dir <DIR>` | Output directory (default: `poneglyph-collect`) |
+| `--ntds-path <PATH>` | Custom NTDS.dit path (auto-detect if omitted) |
+| `--no-cleanup` | Don't delete the shadow copy after collection |
+| `--zip` | Create a zip archive of collected files |
 
-## Output Formats / 出力形式
+## Output Formats
 
 ### BloodHound JSON (`bloodhound/`)
 
 BloodHound CE v5 compatible. Generates `00-users.json`, `00-groups.json`, `00-computers.json`, `00-domains.json`.
 
-BloodHound CE v5 互換。`00-users.json`、`00-groups.json`、`00-computers.json`、`00-domains.json` を生成します。
-
 ### Graph JSON (`graph.json`)
 
 D3.js force-directed graph with nodes (users, computers, groups, DCs) and links (MemberOf, TrustBy).
-
-D3.js フォースグラフ用 JSON。ノード（ユーザー、コンピューター、グループ、DC）とリンク（MemberOf、TrustBy）を含みます。
 
 ### Timeline CSV (`timeline.csv`)
 
 Plaso-compatible CSV with columns: `datetime`, `timestamp_desc`, `source`, `message`, `extra`.
 Events include account creation, modification, password changes, logon timestamps, and lockouts.
 
-plaso 互換の CSV。列: `datetime`、`timestamp_desc`、`source`、`message`、`extra`。
-アカウント作成・変更、パスワード変更、ログオン、ロックアウトなどのイベントを含みます。
-
 ### Hashcat (`hashes.txt`)
 
 secretsdump-compatible format: `username:RID:LM_HASH:NT_HASH:::`
 
-secretsdump 互換形式: `username:RID:LM_HASH:NT_HASH:::`
-
-### Forensics Report / フォレンジックレポート (`forensics-report.json`)
+### Forensics Report (`forensics-report.json`)
 
 JSON report containing metadata, deleted objects (tombstones), anomaly findings, and severity summary.
 
-メタデータ、削除オブジェクト（トゥームストーン）、異常検知結果、重要度サマリーを含む JSON レポート。
+## Anomaly Detection Rules
 
-## Anomaly Detection Rules / 異常検知ルール
-
-| ID | Rule / ルール | Severity / 重要度 | MITRE |
+| ID | Rule | Severity | MITRE |
 |----|------|----------|-------|
-| ANOM-001 | AS-REP Roastable Accounts / AS-REP Roast 可能なアカウント | High | T1558.004 |
-| ANOM-002 | Password Not Required / パスワード不要設定 | High | T1078 |
-| ANOM-003 | Non-Expiring Password on Privileged Accounts / 特権アカウントの無期限パスワード | Medium | T1078.002 |
-| ANOM-004 | Stale Enabled Accounts (>90 days) / 長期未使用アカウント（90日超） | Low | T1078 |
-| ANOM-005 | Never-Logged-In Enabled Accounts / 未ログインの有効アカウント | Low | - |
-| ANOM-006 | Unconstrained Delegation / 制約なし委任 | Critical | T1550.003 |
-| ANOM-007 | Constrained Delegation with Protocol Transition / プロトコル遷移付き制約付き委任 | High | T1550.003 |
-| ANOM-008 | adminCount=1 Accounts / adminCount=1 のアカウント | Info | - |
-| ANOM-009 | High Bad Password Count (>=5) / 不正パスワード試行多数（5回以上） | Medium | T1110 |
-| ANOM-010 | Recently Created Accounts (<30 days) / 最近作成されたアカウント（30日以内） | Info | T1136.002 |
-| ANOM-011 | DCSync-Capable Non-Admin (ACL) / 非管理者の DCSync 権限保持 | Critical | T1003.006 |
-| ANOM-012 | SID History Present / SID 履歴の存在 | High | T1134.005 |
-| ANOM-013 | Shadow Credentials (KeyCredentialLink) / シャドウ資格情報 | High | T1098.004 |
-| ANOM-014 | Kerberoastable User Accounts (SPN) / Kerberoast 可能なユーザーアカウント | High | T1558.003 |
+| ANOM-001 | AS-REP Roastable Accounts | High | T1558.004 |
+| ANOM-002 | Password Not Required | High | T1078 |
+| ANOM-003 | Non-Expiring Password on Privileged Accounts | Medium | T1078.002 |
+| ANOM-004 | Stale Enabled Accounts (>90 days) | Low | T1078 |
+| ANOM-005 | Never-Logged-In Enabled Accounts | Low | - |
+| ANOM-006 | Unconstrained Delegation | Critical | T1550.003 |
+| ANOM-007 | Constrained Delegation with Protocol Transition | High | T1550.003 |
+| ANOM-008 | adminCount=1 Accounts | Info | - |
+| ANOM-009 | High Bad Password Count (>=5) | Medium | T1110 |
+| ANOM-010 | Recently Created Accounts (<30 days) | Info | T1136.002 |
+| ANOM-011 | DCSync-Capable Non-Admin (ACL) | Critical | T1003.006 |
+| ANOM-012 | SID History Present | High | T1134.005 |
+| ANOM-013 | Shadow Credentials (KeyCredentialLink) | High | T1098.004 |
+| ANOM-014 | Kerberoastable User Accounts (SPN) | High | T1558.003 |
 
-## Testing / テスト
+## Testing
 
 66 unit tests covering all pure functions (no database required):
-
-データベース不要の純粋関数を対象とした 66 個のユニットテスト:
 
 ```bash
 cargo test
 ```
 
-| Module / モジュール | Tests / テスト数 | Coverage / カバレッジ |
+| Module | Tests | Coverage |
 |--------|-------|----------|
-| `crypto_tests` | 12 | DES key expansion, RID→DES, RC4 round-trip, AES-128-CBC (NIST vector), PEK/hash error paths |
+| `crypto_tests` | 12 | DES key expansion, RID-to-DES, RC4 round-trip, AES-128-CBC (NIST vector), PEK/hash error paths |
 | `sid_tests` | 12 | parse_sid, extract_rid, domain_sid, edge cases (empty, truncated, well-known RIDs) |
-| `timestamp_tests` | 7 | FILETIME→string/epoch, edge cases (zero, max, negative, pre-epoch, Unix epoch) |
+| `timestamp_tests` | 7 | FILETIME-to-string/epoch, edge cases (zero, max, negative, pre-epoch, Unix epoch) |
 | `uac_tests` | 8 | UAC flag interpretation (NORMAL, DISABLED, PREAUTH, DELEGATION, etc.) |
 | `group_type_tests` | 5 | Security/Distribution, Global/Universal/DomainLocal/BuiltinLocal |
 | `trust_tests` | 6 | UTF-16LE decode, trust direction/type string conversion |
 | `acl_tests` | 4 | Security descriptor parsing (DACL, ACE types, GenericAll) |
 | `anomaly_tests` | 12 | ANOM-001~014 rules (AS-REP, PASSWD_NOTREQD, delegation, DCSync, SID history, etc.) |
 
-## Architecture / アーキテクチャ
+## Architecture
 
 ```
 src/
-├── main.rs              # CLI entry point (6 subcommands) / CLIエントリポイント
-├── lib.rs               # Library exports / ライブラリエクスポート
-├── ese.rs               # ESE database interface / ESEデータベースインターフェース
-├── schema.rs            # ATT code -> LDAP attribute mapping / ATTコード→LDAP属性マッピング
-├── bootkey.rs           # BootKey extraction from SYSTEM hive / SYSTEMハイブからBootKey抽出
-├── crypto.rs            # PEK + hash decryption (DES/AES) / PEK + ハッシュ復号
-├── collect.rs           # Live DC collection (VSS) / 稼働中DCからの収集
-├── links.rs             # Group membership resolution / グループメンバーシップ解決
-├── acl.rs               # Security descriptor / ACE parsing / セキュリティ記述子/ACE解析
+├── main.rs              # CLI entry point (6 subcommands)
+├── lib.rs               # Library exports
+├── ese.rs               # ESE database interface
+├── schema.rs            # ATT code -> LDAP attribute mapping
+├── bootkey.rs           # BootKey extraction from SYSTEM hive
+├── crypto.rs            # PEK + hash decryption (DES/AES)
+├── collect.rs           # Live DC collection (VSS)
+├── links.rs             # Group membership resolution
+├── acl.rs               # Security descriptor / ACE parsing
 ├── objects/
-│   ├── mod.rs           # Core extraction, SID parsing / コア抽出、SID解析
+│   ├── mod.rs           # Core extraction, SID parsing
 │   ├── user.rs          # AdUser
 │   ├── computer.rs      # AdComputer
 │   ├── group.rs         # AdGroup
@@ -263,22 +237,21 @@ src/
 │   ├── csv.rs           # Forensic timeline CSV
 │   └── hashcat.rs       # Hashcat format
 └── forensics/
-    ├── mod.rs           # Report orchestration / レポート統合
-    ├── tombstone.rs     # Deleted object recovery / 削除オブジェクト復元
-    └── anomaly.rs       # 14 detection rules / 14検知ルール
+    ├── mod.rs           # Report orchestration
+    ├── tombstone.rs     # Deleted object recovery
+    └── anomaly.rs       # 14 detection rules
 ```
 
-## Building from Source / ソースからのビルド
+## Building from Source
 
-### Requirements / 必要環境
+### Requirements
 
 - Rust (`stable-x86_64-pc-windows-gnu`)
 - MSYS2 with `mingw-w64-x86_64-gcc` and `mingw-w64-x86_64-binutils`
 
-### Build / ビルド
+### Build
 
 ```bash
-# Set environment / 環境変数の設定
 export PATH="/c/msys64/mingw64/bin:$PATH"
 export CFLAGS="-DHAVE_WINDOWS_H=1 -DWIN32_LEAN_AND_MEAN=1 -Wno-error=implicit-function-declaration -Wno-error=int-conversion"
 
@@ -287,61 +260,41 @@ cargo build --release
 
 The binary will be at `target/release/poneglyph.exe`.
 
-バイナリは `target/release/poneglyph.exe` に生成されます。
-
-### Windows Server 2025 Support / Windows Server 2025 対応
+### Windows Server 2025 Support
 
 To support 32KB ESE pages used by Windows Server 2025, apply the included patches to libesedb-sys:
 
-Windows Server 2025 の 32KB ESE ページをサポートするには、同梱パッチを libesedb-sys に適用します:
-
 ```bash
-# 1. Clone libesedb-sys / libesedb-sys をクローン
+# 1. Clone libesedb-sys
 cargo download libesedb-sys  # or clone from crates.io source
-# 2. Apply patches / パッチ適用
+# 2. Apply patches
 cd libesedb-sys
 patch -p1 < /path/to/poneglyph/libesedb-patches/fix-ws2025-itag-state.patch
 patch -p1 < /path/to/poneglyph/libesedb-patches/zzz-fix-ws2025-btree.patch
 # 3. Uncomment [patch.crates-io] in Cargo.toml and set the path
-# Cargo.toml の [patch.crates-io] をアンコメントしてパスを設定
 ```
 
 Without these patches, Poneglyph supports Windows Server 2019 and earlier (8KB pages) only.
 
-パッチなしの場合、Windows Server 2019 以前（8KB ページ）のみサポートします。
+## Troubleshooting
 
-## Troubleshooting / トラブルシューティング
-
-### Japanese characters in file paths / ファイルパスの日本語文字
+### Japanese characters in file paths
 
 Poneglyph uses libesedb (a C library) internally, which calls `fopen()` to open files. On Windows, `fopen()` interprets paths using the ANSI codepage (CP932/Shift-JIS for Japanese), but Rust passes paths as UTF-8. This encoding mismatch causes file open failures when the path contains non-ASCII characters such as Japanese.
 
-Poneglyph は内部で libesedb（Cライブラリ）を使用しており、ファイルオープンに `fopen()` を使います。Windows の `fopen()` は ANSI コードページ（日本語環境では CP932/Shift-JIS）でパスを解釈しますが、Rust は UTF-8 でパスを渡します。このエンコーディングの不一致により、日本語などの非ASCII文字を含むパスでファイルを開けません。
+**Solution: Enable Windows UTF-8 mode**
 
-**Solution / 解決策: Enable Windows UTF-8 mode / Windows UTF-8 モードの有効化**
-
-1. Open **Settings** → **Time & Language** → **Language & Region** → **Administrative language settings**
-
-   **設定** → **時刻と言語** → **言語と地域** → **管理用の言語の設定**
-
+1. Open **Settings** > **Time & Language** > **Language & Region** > **Administrative language settings**
 2. Click **Change system locale**
-
-   **システム ロケールの変更** をクリック
-
 3. Check **"Beta: Use Unicode UTF-8 for worldwide language support"**
-
-   **「ベータ: ワールドワイド言語サポートで Unicode UTF-8 を使用」** にチェック
-
-4. Restart Windows / Windows を再起動
+4. Restart Windows
 
 This makes `fopen()` accept UTF-8 paths, allowing Poneglyph to open files in paths containing Japanese or other non-ASCII characters.
 
-これにより `fopen()` が UTF-8 パスを受け付けるようになり、日本語などの非ASCII文字を含むパスでもファイルを開けるようになります。
+**Alternative workaround**: Copy the NTDS.dit and SYSTEM files to an ASCII-only path (e.g., `C:\dev\`) and run from PowerShell.
 
-**Alternative workaround / 代替手段**: Copy the NTDS.dit and SYSTEM files to an ASCII-only path (e.g., `C:\dev\`) and run from PowerShell.
+## License
 
-NTDS.dit と SYSTEM ファイルを ASCII のみのパス（例: `C:\dev\`）にコピーし、PowerShell から実行してください。
+This project is licensed under the [GNU Lesser General Public License v3.0 or later](COPYING.LESSER).
 
-## License / ライセンス
-
-MIT
+Poneglyph statically links [libesedb](https://github.com/libyal/libesedb) (LGPL-3.0+), so this project adopts the same license for compatibility.
