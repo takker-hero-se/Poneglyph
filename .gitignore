@@ -10,6 +10,7 @@ hashes.txt
 /poneglyph-output/
 /poneglyph-forensics/
 /poneglyph-collect/
+poneglyph-collect_*/
 
 # IDE
 .vscode/

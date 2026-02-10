@@ -18,7 +18,7 @@ pub struct AdTrust {
     pub when_created: Option<String>,
 }
 
-fn trust_direction_str(dir: i32) -> String {
+pub fn trust_direction_str(dir: i32) -> String {
     match dir {
         0 => "Disabled".to_string(),
         1 => "Inbound".to_string(),
@@ -28,7 +28,7 @@ fn trust_direction_str(dir: i32) -> String {
     }
 }
 
-fn trust_type_str(tt: i32) -> String {
+pub fn trust_type_str(tt: i32) -> String {
     match tt {
         1 => "Downlevel (NT4)".to_string(),
         2 => "Uplevel (AD)".to_string(),
@@ -39,7 +39,7 @@ fn trust_type_str(tt: i32) -> String {
 }
 
 /// Decode a UTF-16LE byte slice into a String, stripping trailing nulls.
-fn decode_utf16le(data: &[u8]) -> String {
+pub fn decode_utf16le(data: &[u8]) -> String {
     let u16s: Vec<u16> = data.chunks_exact(2)
         .map(|c| u16::from_le_bytes([c[0], c[1]]))
         .collect();

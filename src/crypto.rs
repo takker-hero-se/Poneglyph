@@ -192,7 +192,7 @@ fn remove_des_layer(encrypted: &[u8], rid: u32) -> Option<[u8; 16]> {
 }
 
 /// Derive two 8-byte DES keys from a RID.
-fn rid_to_des_keys(rid: u32) -> ([u8; 8], [u8; 8]) {
+pub fn rid_to_des_keys(rid: u32) -> ([u8; 8], [u8; 8]) {
     let s = rid.to_le_bytes(); // 4 bytes
 
     let s1: [u8; 7] = [s[0], s[1], s[2], s[3], s[0], s[1], s[2]];
@@ -202,7 +202,7 @@ fn rid_to_des_keys(rid: u32) -> ([u8; 8], [u8; 8]) {
 }
 
 /// Expand 7 bytes into an 8-byte DES key with parity bits.
-fn expand_des_key(src: &[u8; 7]) -> [u8; 8] {
+pub fn expand_des_key(src: &[u8; 7]) -> [u8; 8] {
     let mut key = [0u8; 8];
     key[0] = src[0] >> 1;
     key[1] = ((src[0] & 0x01) << 6) | (src[1] >> 2);
@@ -226,7 +226,7 @@ fn expand_des_key(src: &[u8; 7]) -> [u8; 8] {
 // ==================== Crypto Primitives ====================
 
 /// Compute RC4 key: MD5(key + salt repeated `iterations` times).
-fn compute_rc4_key(key: &[u8], salt: &[u8], iterations: usize) -> [u8; 16] {
+pub fn compute_rc4_key(key: &[u8], salt: &[u8], iterations: usize) -> [u8; 16] {
     use md5::{Md5, Digest};
 
     let mut hasher = Md5::new();
@@ -242,7 +242,7 @@ fn compute_rc4_key(key: &[u8], salt: &[u8], iterations: usize) -> [u8; 16] {
 }
 
 /// RC4 stream cipher (encrypt = decrypt).
-fn rc4_crypt(key: &[u8], data: &[u8]) -> Vec<u8> {
+pub fn rc4_crypt(key: &[u8], data: &[u8]) -> Vec<u8> {
     let mut s: [u8; 256] = [0; 256];
     for i in 0..256 {
         s[i] = i as u8;
@@ -269,7 +269,7 @@ fn rc4_crypt(key: &[u8], data: &[u8]) -> Vec<u8> {
 }
 
 /// AES-128-CBC decryption (no padding).
-fn aes_128_cbc_decrypt(key: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<Vec<u8>> {
+pub fn aes_128_cbc_decrypt(key: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<Vec<u8>> {
     use aes::Aes128;
     use cbc::Decryptor;
     use cipher::{BlockDecryptMut, KeyIvInit};
