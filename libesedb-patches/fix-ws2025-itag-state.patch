@@ -1,0 +1,8 @@
+--- libesedb/libesedb_page_header.c
++++ libesedb/libesedb_page_header.c
+@@ -241,1 +241,4 @@
+-	 page_header->available_page_tag );
++	 page_header->available_page_tag );
++
++	/* WS2025+ itagState format: lower 12 bits = tag count, upper 4 bits = ctagReserved */
++	page_header->available_page_tag &= 0x0FFF;

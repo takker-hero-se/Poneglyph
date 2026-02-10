@@ -1,0 +1,82 @@
+--- libesedb/libesedb_page_tree.c
++++ libesedb/libesedb_page_tree.c
+@@ -1456,22 +1456,37 @@
+-		last_leaf_page_number = safe_leaf_page_number;
+-
+-		if( libfdata_vector_get_element_value_by_index(
+-		     page_tree->pages_vector,
+-		     (intptr_t *) file_io_handle,
+-		     (libfdata_cache_t *) page_tree->pages_cache,
+-		     (int) safe_leaf_page_number - 1,
+-		     (intptr_t **) &page,
+-		     0,
+-		     error ) != 1 )
+-		{
+-			libcerror_error_set(
+-			 error,
+-			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+-			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+-			 "%s: unable to retrieve page: %" PRIu32 ".",
+-			 function,
+-			 safe_leaf_page_number );
+-
+-			return( -1 );
+-		}
+-		if( libesedb_page_get_previous_page_number(
++		if( libfdata_vector_get_element_value_by_index(
++		     page_tree->pages_vector,
++		     (intptr_t *) file_io_handle,
++		     (libfdata_cache_t *) page_tree->pages_cache,
++		     (int) safe_leaf_page_number - 1,
++		     (intptr_t **) &page,
++		     0,
++		     error ) != 1 )
++		{
++			libcerror_error_set(
++			 error,
++			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
++			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
++			 "%s: unable to retrieve page: %" PRIu32 ".",
++			 function,
++			 safe_leaf_page_number );
++
++			return( -1 );
++		}
++		/* WS2025 fix: stop backward walk if page is not a leaf
++		 * (e.g., unallocated/zeroed page in 32KB page format)
++		 */
++		{
++			uint32_t walk_page_flags = 0;
++
++			if( libesedb_page_get_flags(
++			     page,
++			     &walk_page_flags,
++			     NULL ) != 1
++			 || ( walk_page_flags & LIBESEDB_PAGE_FLAG_IS_LEAF ) == 0 )
++			{
++				break;
++			}
++		}
++		last_leaf_page_number = safe_leaf_page_number;
++
++		if( libesedb_page_get_previous_page_number(
+@@ -1765,2 +1780,17 @@
+-			}
+-			if( libesedb_page_tree_get_number_of_leaf_values_from_leaf_page(
++			}
++			/* WS2025 fix: stop iteration if page is not a leaf
++			 * (e.g., unallocated/zeroed page in 32KB page format)
++			 */
++			{
++				uint32_t iter_page_flags = 0;
++
++				if( libesedb_page_get_flags(
++				     page,
++				     &iter_page_flags,
++				     NULL ) != 1
++				 || ( iter_page_flags & LIBESEDB_PAGE_FLAG_IS_LEAF ) == 0 )
++				{
++					break;
++				}
++			}
++			if( libesedb_page_tree_get_number_of_leaf_values_from_leaf_page(
