@@ -1,10 +1,18 @@
-# Poneglyph
+<p align="center">
+  <img src="docs/logo.svg" alt="Poneglyph" width="200"/>
+</p>
 
-Active Directory NTDS.dit フォレンジック分析ツール。
+<h1 align="center">Poneglyph</h1>
 
-**[English README](README.md)**
+<p align="center">Active Directory NTDS.dit フォレンジック分析ツール。</p>
+
+<p align="center"><strong><a href="README.md">English README</a></strong></p>
 
 Poneglyph は NTDS.dit（Active Directory データベース）をオフラインで解析し、ユーザー・コンピューター・グループ・信頼関係・パスワードハッシュを抽出します。さらに、削除オブジェクトの復元や異常検知などのフォレンジック分析も実行できます。
+
+<p align="center">
+  <img src="docs/architecture.svg" alt="Poneglyph アーキテクチャ" width="800"/>
+</p>
 
 ## 機能
 

@@ -1,16 +1,17 @@
 use anyhow::{Context, Result};
 use libesedb::EseDb;
+use serde::Serialize;
 use std::path::Path;
 
 /// Information about a single table in the database.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct TableInfo {
     pub name: String,
     pub record_count: i64,
 }
 
 /// Summary information about the NTDS.dit database.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct DatabaseInfo {
     pub table_count: i32,
     pub tables: Vec<TableInfo>,

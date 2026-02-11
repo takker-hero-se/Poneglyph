@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <!-- Stone texture gradient -->
+    <linearGradient id="stoneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2d3748"/>
+      <stop offset="30%" style="stop-color:#1a202c"/>
+      <stop offset="70%" style="stop-color:#2d3748"/>
+      <stop offset="100%" style="stop-color:#1a202c"/>
+    </linearGradient>
+    <!-- Stone edge highlight -->
+    <linearGradient id="edgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a5568"/>
+      <stop offset="100%" style="stop-color:#2d3748"/>
+    </linearGradient>
+    <!-- Glow for inscriptions -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glowStrong">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Inner shadow for stone depth -->
+    <filter id="innerShadow">
+      <feOffset dx="0" dy="3"/>
+      <feGaussianBlur stdDeviation="4"/>
+      <feComposite operator="out" in2="SourceGraphic"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.5"/>
+      </feComponentTransfer>
+      <feComposite operator="over" in2="SourceGraphic"/>
+    </filter>
+    <!-- Drop shadow -->
+    <filter id="dropShadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.6"/>
+    </filter>
+    <!-- Crack pattern -->
+    <clipPath id="stoneClip">
+      <path d="M130,60 L382,60 Q400,60 400,78 L400,434 Q400,452 382,452 L130,452 Q112,452 112,434 L112,78 Q112,60 130,60 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Stone tablet body -->
+  <g filter="url(#dropShadow)">
+    <!-- Main stone slab -->
+    <rect x="112" y="60" width="288" height="392" rx="18" fill="url(#stoneGrad)" stroke="#4a5568" stroke-width="2"/>
+
+    <!-- Stone surface texture (subtle lines) -->
+    <g opacity="0.08" clip-path="url(#stoneClip)">
+      <line x1="112" y1="100" x2="400" y2="95" stroke="#718096" stroke-width="0.5"/>
+      <line x1="112" y1="150" x2="400" y2="155" stroke="#718096" stroke-width="0.5"/>
+      <line x1="112" y1="210" x2="400" y2="205" stroke="#718096" stroke-width="0.5"/>
+      <line x1="112" y1="270" x2="400" y2="275" stroke="#718096" stroke-width="0.5"/>
+      <line x1="112" y1="330" x2="400" y2="325" stroke="#718096" stroke-width="0.5"/>
+      <line x1="112" y1="390" x2="400" y2="395" stroke="#718096" stroke-width="0.5"/>
+      <line x1="160" y1="60" x2="155" y2="452" stroke="#718096" stroke-width="0.3"/>
+      <line x1="220" y1="60" x2="225" y2="452" stroke="#718096" stroke-width="0.3"/>
+      <line x1="290" y1="60" x2="285" y2="452" stroke="#718096" stroke-width="0.3"/>
+      <line x1="350" y1="60" x2="355" y2="452" stroke="#718096" stroke-width="0.3"/>
+    </g>
+
+    <!-- Weathered edges -->
+    <path d="M130,60 L140,62 L135,65 L142,63 L382,60" fill="none" stroke="#4a5568" stroke-width="0.5" opacity="0.3"/>
+    <path d="M112,434 L115,440 L113,445 L112,434" fill="none" stroke="#4a5568" stroke-width="0.5" opacity="0.3"/>
+  </g>
+
+  <!-- Crack lines on stone -->
+  <g opacity="0.15">
+    <path d="M200,60 L205,90 L195,120 L203,140" fill="none" stroke="#718096" stroke-width="0.8"/>
+    <path d="M340,380 L335,410 L345,440 L340,452" fill="none" stroke="#718096" stroke-width="0.8"/>
+    <path d="M112,200 L135,205 L145,195" fill="none" stroke="#718096" stroke-width="0.6"/>
+  </g>
+
+  <!-- === Inscribed glowing text (ancient poneglyph style) === -->
+
+  <!-- Row 1: Hex data (NT hash representation) -->
+  <g filter="url(#glow)" opacity="0.85">
+    <text x="256" y="115" text-anchor="middle" fill="#63b3ed" font-size="14" font-weight="bold" letter-spacing="3">
+      8846F7EA EE8FB117
+    </text>
+  </g>
+
+  <!-- Row 2: More hex -->
+  <g filter="url(#glow)" opacity="0.7">
+    <text x="256" y="145" text-anchor="middle" fill="#63b3ed" font-size="14" font-weight="bold" letter-spacing="3">
+      AD06BDD8 30B7586C
+    </text>
+  </g>
+
+  <!-- Separator line (carved into stone) -->
+  <line x1="150" y1="168" x2="362" y2="168" stroke="#4299e1" stroke-width="1" opacity="0.4"/>
+
+  <!-- Central key symbol (represents decryption) -->
+  <g transform="translate(256, 260)" filter="url(#glowStrong)">
+    <!-- Key ring (circle) -->
+    <circle cx="0" cy="-40" r="30" fill="none" stroke="#f6ad55" stroke-width="3.5" opacity="0.9"/>
+    <circle cx="0" cy="-40" r="20" fill="none" stroke="#f6ad55" stroke-width="1.5" opacity="0.5"/>
+    <!-- Keyhole in ring -->
+    <circle cx="0" cy="-44" r="6" fill="#f6ad55" opacity="0.7"/>
+    <rect x="-3" y="-42" width="6" height="14" rx="2" fill="#f6ad55" opacity="0.7"/>
+    <!-- Key shaft -->
+    <rect x="-3" y="-10" width="6" height="70" rx="2" fill="#f6ad55" opacity="0.9"/>
+    <!-- Key teeth -->
+    <rect x="3" y="35" width="16" height="5" rx="1" fill="#f6ad55" opacity="0.9"/>
+    <rect x="3" y="47" width="12" height="5" rx="1" fill="#f6ad55" opacity="0.9"/>
+    <rect x="3" y="22" width="10" height="5" rx="1" fill="#f6ad55" opacity="0.9"/>
+  </g>
+
+  <!-- Ancient script-like inscriptions (left side) -->
+  <g filter="url(#glow)" opacity="0.5">
+    <text x="148" y="210" fill="#63b3ed" font-size="11" letter-spacing="2">ATTk589826</text>
+    <text x="148" y="235" fill="#63b3ed" font-size="11" letter-spacing="2">ATTm590045</text>
+    <text x="148" y="340" fill="#63b3ed" font-size="11" letter-spacing="2">ATTr589970</text>
+    <text x="148" y="365" fill="#63b3ed" font-size="11" letter-spacing="2">ATTj589832</text>
+  </g>
+
+  <!-- Ancient script-like inscriptions (right side) -->
+  <g filter="url(#glow)" opacity="0.5">
+    <text x="308" y="210" fill="#63b3ed" font-size="11" letter-spacing="2">S-1-5-21</text>
+    <text x="308" y="235" fill="#63b3ed" font-size="11" letter-spacing="2">datatable</text>
+    <text x="308" y="340" fill="#63b3ed" font-size="11" letter-spacing="2">sd_table</text>
+    <text x="308" y="365" fill="#63b3ed" font-size="11" letter-spacing="2">link_tbl</text>
+  </g>
+
+  <!-- Bottom separator -->
+  <line x1="150" y1="390" x2="362" y2="390" stroke="#4299e1" stroke-width="1" opacity="0.4"/>
+
+  <!-- Bottom row: SID format -->
+  <g filter="url(#glow)" opacity="0.6">
+    <text x="256" y="418" text-anchor="middle" fill="#68d391" font-size="12" letter-spacing="2">
+      BootKey + PEK + DES
+    </text>
+    <text x="256" y="440" text-anchor="middle" fill="#68d391" font-size="11" letter-spacing="2">
+      NTDS.dit FORENSICS
+    </text>
+  </g>
+</svg>

@@ -1,0 +1,190 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d1117"/>
+      <stop offset="100%" style="stop-color:#161b22"/>
+    </linearGradient>
+    <linearGradient id="inputGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a3a5c"/>
+      <stop offset="100%" style="stop-color:#0f2440"/>
+    </linearGradient>
+    <linearGradient id="coreGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2a1a3c"/>
+      <stop offset="100%" style="stop-color:#1a0f2a"/>
+    </linearGradient>
+    <linearGradient id="outputGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a3c2a"/>
+      <stop offset="100%" style="stop-color:#0f2a1a"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#58a6ff"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3fb950"/>
+    </marker>
+    <marker id="arrowOrange" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#d29922"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="720" fill="url(#bgGrad)" rx="12"/>
+
+  <!-- Title -->
+  <text x="480" y="40" text-anchor="middle" fill="#f0f6fc" font-size="22" font-weight="bold">Poneglyph Architecture</text>
+  <text x="480" y="62" text-anchor="middle" fill="#8b949e" font-size="13">NTDS.dit Forensic Analysis Pipeline</text>
+
+  <!-- ============ INPUT LAYER ============ -->
+  <rect x="30" y="85" width="900" height="110" rx="10" fill="url(#inputGrad)" stroke="#1f6feb" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="50" y="108" fill="#58a6ff" font-size="13" font-weight="bold">INPUT</text>
+
+  <!-- NTDS.dit -->
+  <rect x="60" y="118" width="160" height="60" rx="8" fill="#0d1117" stroke="#58a6ff" stroke-width="1.2"/>
+  <text x="140" y="144" text-anchor="middle" fill="#f0f6fc" font-size="14" font-weight="bold">NTDS.dit</text>
+  <text x="140" y="163" text-anchor="middle" fill="#8b949e" font-size="11">ESE Database</text>
+
+  <!-- SYSTEM hive -->
+  <rect x="260" y="118" width="160" height="60" rx="8" fill="#0d1117" stroke="#58a6ff" stroke-width="1.2"/>
+  <text x="340" y="144" text-anchor="middle" fill="#f0f6fc" font-size="14" font-weight="bold">SYSTEM Hive</text>
+  <text x="340" y="163" text-anchor="middle" fill="#8b949e" font-size="11">Registry (BootKey)</text>
+
+  <!-- Live DC -->
+  <rect x="460" y="118" width="160" height="60" rx="8" fill="#0d1117" stroke="#d29922" stroke-width="1.2"/>
+  <text x="540" y="144" text-anchor="middle" fill="#f0f6fc" font-size="14" font-weight="bold">Live DC</text>
+  <text x="540" y="163" text-anchor="middle" fill="#8b949e" font-size="11">VSS Shadow Copy</text>
+
+  <!-- MCP Client -->
+  <rect x="660" y="118" width="160" height="60" rx="8" fill="#0d1117" stroke="#bc8cff" stroke-width="1.2"/>
+  <text x="740" y="144" text-anchor="middle" fill="#f0f6fc" font-size="14" font-weight="bold">MCP Client</text>
+  <text x="740" y="163" text-anchor="middle" fill="#8b949e" font-size="11">Claude / AI Agent</text>
+
+  <!-- ============ CORE PROCESSING ============ -->
+  <rect x="30" y="220" width="900" height="280" rx="10" fill="url(#coreGrad)" stroke="#bc8cff" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="50" y="243" fill="#bc8cff" font-size="13" font-weight="bold">CORE PROCESSING</text>
+
+  <!-- Row 1: ESE Parser + Schema + BootKey -->
+  <rect x="60" y="258" width="140" height="55" rx="7" fill="#0d1117" stroke="#bc8cff" stroke-width="1"/>
+  <text x="130" y="281" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">ESE Parser</text>
+  <text x="130" y="300" text-anchor="middle" fill="#8b949e" font-size="10">ese.rs</text>
+
+  <rect x="230" y="258" width="140" height="55" rx="7" fill="#0d1117" stroke="#bc8cff" stroke-width="1"/>
+  <text x="300" y="281" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">Schema Map</text>
+  <text x="300" y="300" text-anchor="middle" fill="#8b949e" font-size="10">schema.rs</text>
+
+  <rect x="400" y="258" width="140" height="55" rx="7" fill="#0d1117" stroke="#bc8cff" stroke-width="1"/>
+  <text x="470" y="281" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">BootKey</text>
+  <text x="470" y="300" text-anchor="middle" fill="#8b949e" font-size="10">bootkey.rs</text>
+
+  <rect x="570" y="258" width="140" height="55" rx="7" fill="#0d1117" stroke="#bc8cff" stroke-width="1"/>
+  <text x="640" y="281" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">Collect</text>
+  <text x="640" y="300" text-anchor="middle" fill="#8b949e" font-size="10">collect.rs (VSS)</text>
+
+  <rect x="740" y="258" width="140" height="55" rx="7" fill="#0d1117" stroke="#bc8cff" stroke-width="1"/>
+  <text x="810" y="281" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">MCP Server</text>
+  <text x="810" y="300" text-anchor="middle" fill="#8b949e" font-size="10">mcp.rs (rmcp)</text>
+
+  <!-- Row 2: Object Extraction -->
+  <rect x="60" y="333" width="310" height="55" rx="7" fill="#0d1117" stroke="#bc8cff" stroke-width="1"/>
+  <text x="215" y="356" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">Object Extraction</text>
+  <text x="215" y="374" text-anchor="middle" fill="#8b949e" font-size="10">objects/ (User, Computer, Group, GPO, Trust)</text>
+
+  <rect x="400" y="333" width="140" height="55" rx="7" fill="#0d1117" stroke="#bc8cff" stroke-width="1"/>
+  <text x="470" y="356" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">Crypto</text>
+  <text x="470" y="374" text-anchor="middle" fill="#8b949e" font-size="10">PEK + Hash Decrypt</text>
+
+  <rect x="570" y="333" width="140" height="55" rx="7" fill="#0d1117" stroke="#bc8cff" stroke-width="1"/>
+  <text x="640" y="356" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">Links</text>
+  <text x="640" y="374" text-anchor="middle" fill="#8b949e" font-size="10">Group Membership</text>
+
+  <rect x="740" y="333" width="140" height="55" rx="7" fill="#0d1117" stroke="#bc8cff" stroke-width="1"/>
+  <text x="810" y="356" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">ACL</text>
+  <text x="810" y="374" text-anchor="middle" fill="#8b949e" font-size="10">SD / ACE Parsing</text>
+
+  <!-- Row 3: Forensics -->
+  <rect x="60" y="408" width="480" height="55" rx="7" fill="#0d1117" stroke="#f85149" stroke-width="1"/>
+  <text x="300" y="431" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">Forensics Engine</text>
+  <text x="300" y="449" text-anchor="middle" fill="#8b949e" font-size="10">Tombstone Recovery + 14 Anomaly Rules (ANOM-001~014) + DCSync Detection</text>
+
+  <!-- Decryption chain label -->
+  <rect x="570" y="408" width="310" height="55" rx="7" fill="#0d1117" stroke="#d29922" stroke-width="1"/>
+  <text x="725" y="428" text-anchor="middle" fill="#d29922" font-size="11" font-weight="bold">Decryption Chain</text>
+  <text x="725" y="448" text-anchor="middle" fill="#8b949e" font-size="10">BootKey → PEK → NT/LM Hash</text>
+
+  <!-- ============ OUTPUT LAYER ============ -->
+  <rect x="30" y="525" width="900" height="110" rx="10" fill="url(#outputGrad)" stroke="#3fb950" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="50" y="548" fill="#3fb950" font-size="13" font-weight="bold">OUTPUT</text>
+
+  <!-- BloodHound -->
+  <rect x="50" y="558" width="130" height="60" rx="8" fill="#0d1117" stroke="#3fb950" stroke-width="1.2"/>
+  <text x="115" y="583" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">BloodHound</text>
+  <text x="115" y="601" text-anchor="middle" fill="#8b949e" font-size="10">CE v5 JSON</text>
+
+  <!-- Graph -->
+  <rect x="200" y="558" width="130" height="60" rx="8" fill="#0d1117" stroke="#3fb950" stroke-width="1.2"/>
+  <text x="265" y="583" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">Graph</text>
+  <text x="265" y="601" text-anchor="middle" fill="#8b949e" font-size="10">D3.js JSON</text>
+
+  <!-- Timeline -->
+  <rect x="350" y="558" width="130" height="60" rx="8" fill="#0d1117" stroke="#3fb950" stroke-width="1.2"/>
+  <text x="415" y="583" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">Timeline</text>
+  <text x="415" y="601" text-anchor="middle" fill="#8b949e" font-size="10">CSV (plaso)</text>
+
+  <!-- Hashes -->
+  <rect x="500" y="558" width="130" height="60" rx="8" fill="#0d1117" stroke="#3fb950" stroke-width="1.2"/>
+  <text x="565" y="583" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">Hashes</text>
+  <text x="565" y="601" text-anchor="middle" fill="#8b949e" font-size="10">hashcat/john/pwdump</text>
+
+  <!-- Forensics Report -->
+  <rect x="650" y="558" width="130" height="60" rx="8" fill="#0d1117" stroke="#f85149" stroke-width="1.2"/>
+  <text x="715" y="583" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">Forensics</text>
+  <text x="715" y="601" text-anchor="middle" fill="#8b949e" font-size="10">JSON Report</text>
+
+  <!-- Collect ZIP -->
+  <rect x="800" y="558" width="110" height="60" rx="8" fill="#0d1117" stroke="#d29922" stroke-width="1.2"/>
+  <text x="855" y="583" text-anchor="middle" fill="#f0f6fc" font-size="12" font-weight="bold">Collect</text>
+  <text x="855" y="601" text-anchor="middle" fill="#8b949e" font-size="10">NTDS + SYSTEM</text>
+
+  <!-- ============ ARROWS ============ -->
+  <!-- Input → Core -->
+  <line x1="140" y1="178" x2="130" y2="255" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="340" y1="178" x2="470" y2="255" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="540" y1="178" x2="640" y2="255" stroke="#d29922" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+  <line x1="740" y1="178" x2="810" y2="255" stroke="#bc8cff" stroke-width="1.5" stroke-dasharray="6,3"/>
+
+  <!-- ESE → Schema -->
+  <line x1="200" y1="285" x2="228" y2="285" stroke="#bc8cff" stroke-width="1" marker-end="url(#arrow)"/>
+  <!-- Schema → Objects -->
+  <line x1="215" y1="313" x2="215" y2="330" stroke="#bc8cff" stroke-width="1" marker-end="url(#arrow)"/>
+  <!-- BootKey → Crypto -->
+  <line x1="470" y1="313" x2="470" y2="330" stroke="#bc8cff" stroke-width="1" marker-end="url(#arrow)"/>
+  <!-- Objects → Forensics -->
+  <line x1="215" y1="388" x2="215" y2="405" stroke="#bc8cff" stroke-width="1" marker-end="url(#arrow)"/>
+  <!-- ACL → Forensics -->
+  <line x1="810" y1="388" x2="540" y2="420" stroke="#bc8cff" stroke-width="1" marker-end="url(#arrow)" stroke-dasharray="4,3"/>
+
+  <!-- Core → Output -->
+  <line x1="115" y1="463" x2="115" y2="555" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <line x1="265" y1="463" x2="265" y2="555" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <line x1="415" y1="463" x2="415" y2="555" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <line x1="565" y1="463" x2="565" y2="555" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <line x1="390" y1="463" x2="715" y2="555" stroke="#f85149" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <line x1="640" y1="313" x2="855" y2="555" stroke="#d29922" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+
+  <!-- ============ LEGEND ============ -->
+  <rect x="30" y="655" width="900" height="50" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <circle cx="60" cy="680" r="6" fill="#58a6ff"/>
+  <text x="75" y="684" fill="#8b949e" font-size="11">Offline Analysis</text>
+  <circle cx="210" cy="680" r="6" fill="#d29922"/>
+  <text x="225" y="684" fill="#8b949e" font-size="11">Live Collection</text>
+  <circle cx="360" cy="680" r="6" fill="#bc8cff"/>
+  <text x="375" y="684" fill="#8b949e" font-size="11">Processing</text>
+  <circle cx="480" cy="680" r="6" fill="#3fb950"/>
+  <text x="495" y="684" fill="#8b949e" font-size="11">Output</text>
+  <circle cx="575" cy="680" r="6" fill="#f85149"/>
+  <text x="590" y="684" fill="#8b949e" font-size="11">Forensics</text>
+
+  <text x="750" y="684" fill="#484f58" font-size="10">Poneglyph v0.2.0</text>
+</svg>

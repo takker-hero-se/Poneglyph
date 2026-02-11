@@ -1,10 +1,18 @@
-# Poneglyph
+<p align="center">
+  <img src="docs/logo.svg" alt="Poneglyph" width="200"/>
+</p>
 
-Active Directory NTDS.dit forensic analysis tool.
+<h1 align="center">Poneglyph</h1>
 
-**[日本語版 README はこちら](README.ja.md)**
+<p align="center">Active Directory NTDS.dit forensic analysis tool.</p>
+
+<p align="center"><strong><a href="README.ja.md">日本語版 README はこちら</a></strong></p>
 
 Poneglyph parses NTDS.dit (Active Directory database) offline and extracts users, computers, groups, trusts, password hashes, and performs forensic analysis including tombstone recovery and anomaly detection.
+
+<p align="center">
+  <img src="docs/architecture.svg" alt="Poneglyph Architecture" width="800"/>
+</p>
 
 ## Features
 

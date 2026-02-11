@@ -148,6 +148,25 @@ enum Commands {
     },
 }
 
+fn print_banner() {
+    let ver = env!("CARGO_PKG_VERSION");
+    eprintln!(r"
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃                                              ┃
+    ┃    ░▒▓█  P O N E G L Y P H  █▓▒░            ┃
+    ┃    ◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆            ┃
+    ┃                                              ┃
+    ┃     NTDS.dit Forensic Analysis Tool          ┃
+    ┃     Decode the secrets within AD             ┃
+    ┃                                              ┃
+    ┃     BootKey ─► PEK ─► Hash ─► Decode         ┃
+    ┃                                              ┃
+    ┃    ◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆            ┃");
+    eprintln!("    ┃                                 v{:<6}      ┃", ver);
+    eprintln!(r"    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
+    eprintln!();
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
@@ -156,6 +175,8 @@ fn main() -> Result<()> {
     } else {
         env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     }
+
+    print_banner();
 
     match cli.command {
         Commands::Info { ntds } => cmd_info(&ntds),

@@ -60,6 +60,11 @@ zip = { version = "2.2", default-features = false, features = ["deflate"] }
 # UUID (for BloodHound objectid)
 uuid = { version = "1", features = ["v4"] }
 
+# MCP server (Model Context Protocol)
+rmcp = { version = "0.15", features = ["server", "transport-io"] }
+tokio = { version = "1", features = ["full"] }
+schemars = "1.0"
+
 # Windows Server 2025 (32KB page) support requires patched libesedb-sys.
 # See libesedb-patches/ directory and README for instructions.
 # Uncomment below and set the path to your patched libesedb-sys:
