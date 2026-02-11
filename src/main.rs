@@ -348,8 +348,10 @@ fn cmd_collect(
 
     println!();
     println!("Collection complete!");
-    println!("  NTDS.dit: {} ({:.1} MB)", result.ntds_path.display(), result.ntds_size as f64 / 1_048_576.0);
-    println!("  SYSTEM:   {} ({:.1} MB)", result.system_path.display(), result.system_size as f64 / 1_048_576.0);
+    println!("  NTDS.dit:  {} ({:.1} MB)", result.ntds_path.display(), result.ntds_size as f64 / 1_048_576.0);
+    println!("  SYSTEM:    {} ({:.1} MB)", result.system_path.display(), result.system_size as f64 / 1_048_576.0);
+    println!("  EDB logs:  {} file(s)", result.log_files.len());
+    println!("  DB state:  {}", result.db_state);
 
     if zip {
         println!();

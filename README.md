@@ -25,7 +25,7 @@ Poneglyph parses NTDS.dit (Active Directory database) offline and extracts users
 - **Forensic Timeline** - CSV timeline of AD object changes (plaso compatible)
 - **Tombstone Recovery** - Deleted object recovery from ESE tombstones
 - **Anomaly Detection** - 14-rule security assessment engine with MITRE ATT&CK mapping
-- **Live Collection** - Volume Shadow Copy based NTDS.dit acquisition from running DCs
+- **Live Collection** - Volume Shadow Copy based NTDS.dit + EDB log acquisition with integrity verification
 
 ## Installation
 
@@ -78,7 +78,7 @@ poneglyph info --ntds ntds.dit
 poneglyph collect --zip
 ```
 
-Uses Volume Shadow Copy to safely acquire NTDS.dit and SYSTEM hive.
+Uses Volume Shadow Copy to safely acquire NTDS.dit, EDB transaction logs, and SYSTEM hive. Automatically verifies database integrity with `esentutl /mh` and warns on Dirty Shutdown.
 
 ## Batch Scripts
 

@@ -25,7 +25,7 @@ Poneglyph は NTDS.dit（Active Directory データベース）をオフライ�
 - **フォレンジックタイムライン** - AD オブジェクト変更の CSV タイムライン（plaso 互換）
 - **削除オブジェクト復元** - ESE トゥームストーンからの削除オブジェクト復元
 - **異常検知** - MITRE ATT&CK マッピング付き 14 ルールのセキュリティ診断エンジン
-- **ライブ収集** - ボリュームシャドウコピーによる稼働中 DC からの NTDS.dit 取得
+- **ライブ収集** - ボリュームシャドウコピーによる NTDS.dit + EDBログ取得と整合性検証
 
 ## インストール
 
@@ -78,7 +78,7 @@ poneglyph info --ntds ntds.dit
 poneglyph collect --zip
 ```
 
-ボリュームシャドウコピーを使用して NTDS.dit と SYSTEM ハイブを安全に取得します。
+ボリュームシャドウコピーを使用して NTDS.dit、EDBトランザクションログ、SYSTEM ハイブを安全に取得します。`esentutl /mh` によるデータベース整合性の自動検証とDirty Shutdown警告機能付き。
 
 ## バッチスクリプト
 
