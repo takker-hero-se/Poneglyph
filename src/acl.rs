@@ -1,9 +1,11 @@
 use anyhow::{Result, bail};
 use byteorder::{LittleEndian, ReadBytesExt};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::io::Cursor;
 
-use crate::objects::parse_sid;
+use crate::ese::NtdsDatabase;
+use crate::objects::{self, parse_sid};
 
 // ACE type constants
 const ACCESS_ALLOWED_ACE_TYPE: u8 = 0x00;
@@ -281,4 +283,56 @@ fn parse_allowed_object_ace(data: &[u8], is_inherited: bool) -> Option<Vec<AceEn
     } else {
         Some(entries)
     }
+}
+
+/// Parse all security descriptors from sd_table and build a map of SID → ACEs.
+///
+/// Used by forensics (DCSync detection) and MCP server.
+pub fn build_domain_aces(db: &NtdsDatabase) -> Result<HashMap<String, Vec<AceEntry>>> {
+    let sd_table = db.sd_table()?;
+    let record_count = sd_table.count_records()?;
+
+    let mut aces_by_sid: HashMap<String, Vec<AceEntry>> = HashMap::new();
+
+    let col_count = sd_table.count_columns()?;
+    let mut sd_value_col: Option<i32> = None;
+    for i in 0..col_count {
+        if let Ok(col) = sd_table.column(i) {
+            if let Ok(name) = col.name() {
+                if name == "sd_value" {
+                    sd_value_col = Some(i);
+                }
+            }
+        }
+    }
+
+    let sd_col = match sd_value_col {
+        Some(c) => c,
+        None => {
+            log::warn!("sd_value column not found in sd_table");
+            return Ok(aces_by_sid);
+        }
+    };
+
+    log::info!("Parsing {} security descriptors...", record_count);
+
+    for i in 0..record_count {
+        let record = match sd_table.record(i) {
+            Ok(r) => r,
+            Err(_) => continue,
+        };
+
+        if let Some(sd_data) = objects::get_binary_value(&record, Some(sd_col)) {
+            if let Ok(aces) = parse_security_descriptor(&sd_data) {
+                for ace in aces {
+                    aces_by_sid.entry(ace.principal_sid.clone())
+                        .or_default()
+                        .push(ace);
+                }
+            }
+        }
+    }
+
+    log::info!("Parsed {} principals with ACEs", aces_by_sid.len());
+    Ok(aces_by_sid)
 }

@@ -12,6 +12,7 @@ mod output;
 mod links;
 mod acl;
 mod forensics;
+mod mcp;
 
 #[derive(Parser)]
 #[command(name = "poneglyph")]
@@ -146,6 +147,9 @@ enum Commands {
         #[arg(long)]
         all: bool,
     },
+
+    /// Start MCP (Model Context Protocol) server over stdio
+    Mcp,
 }
 
 fn print_banner() {
@@ -170,13 +174,17 @@ fn print_banner() {
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    if cli.verbose {
-        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).init();
-    } else {
-        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
-    }
+    // Skip banner and logging for MCP mode (uses stdio for JSON-RPC)
+    let is_mcp = matches!(cli.command, Commands::Mcp);
 
-    print_banner();
+    if !is_mcp {
+        if cli.verbose {
+            env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).init();
+        } else {
+            env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+        }
+        print_banner();
+    }
 
     match cli.command {
         Commands::Info { ntds } => cmd_info(&ntds),
@@ -195,7 +203,13 @@ fn main() -> Result<()> {
         Commands::Dump { ntds, system, output_dir, domain, bloodhound, hashcat, graph, timeline, all } => {
             cmd_dump(&ntds, system.as_deref(), &output_dir, domain.as_deref(), bloodhound, hashcat, graph, timeline, all)
         }
+        Commands::Mcp => cmd_mcp(),
     }
+}
+
+fn cmd_mcp() -> Result<()> {
+    let rt = tokio::runtime::Runtime::new()?;
+    rt.block_on(mcp::run_mcp_server())
 }
 
 fn cmd_info(ntds_path: &std::path::Path) -> Result<()> {
@@ -559,7 +573,10 @@ fn cmd_forensics(
     // Step 3: ACL analysis (optional)
     println!("[3/5] ACL analysis...");
     let aces_by_sid = if include_acls {
-        build_domain_aces(&db)?
+        println!("  Parsing security descriptors...");
+        let aces = acl::build_domain_aces(&db)?;
+        println!("  Parsed {} principals with ACEs", aces.len());
+        aces
     } else {
         println!("  Skipped (use --acls to enable DCSync detection)");
         std::collections::HashMap::new()
@@ -594,55 +611,3 @@ fn cmd_forensics(
     Ok(())
 }
 
-fn build_domain_aces(
-    db: &ese::NtdsDatabase,
-) -> Result<std::collections::HashMap<String, Vec<acl::AceEntry>>> {
-    let sd_table = db.sd_table()?;
-    let record_count = sd_table.count_records()?;
-
-    let mut aces_by_sid: std::collections::HashMap<String, Vec<acl::AceEntry>> =
-        std::collections::HashMap::new();
-
-    // Find sd_value column in sd_table
-    let col_count = sd_table.count_columns()?;
-    let mut sd_value_col: Option<i32> = None;
-    for i in 0..col_count {
-        if let Ok(col) = sd_table.column(i) {
-            if let Ok(name) = col.name() {
-                if name == "sd_value" {
-                    sd_value_col = Some(i);
-                }
-            }
-        }
-    }
-
-    let sd_col = match sd_value_col {
-        Some(c) => c,
-        None => {
-            log::warn!("sd_value column not found in sd_table");
-            return Ok(aces_by_sid);
-        }
-    };
-
-    println!("  Parsing {} security descriptors...", record_count);
-
-    for i in 0..record_count {
-        let record = match sd_table.record(i) {
-            Ok(r) => r,
-            Err(_) => continue,
-        };
-
-        if let Some(sd_data) = objects::get_binary_value(&record, Some(sd_col)) {
-            if let Ok(aces) = acl::parse_security_descriptor(&sd_data) {
-                for ace in aces {
-                    aces_by_sid.entry(ace.principal_sid.clone())
-                        .or_default()
-                        .push(ace);
-                }
-            }
-        }
-    }
-
-    println!("  Parsed {} principals with ACEs", aces_by_sid.len());
-    Ok(aces_by_sid)
-}
