@@ -886,3 +886,806 @@ mod anomaly_tests {
         assert!(anom008.is_some(), "ANOM-008 should fire for adminCount=1");
     }
 }
+
+// ==================== Hashcat Output Tests ====================
+
+mod hashcat_tests {
+    use poneglyph_lib::crypto::UserHash;
+    use poneglyph_lib::output::hashcat::{format_entry, write_hashes};
+
+    fn make_hash(name: &str, rid: u32, nt: Option<[u8; 16]>, lm: Option<[u8; 16]>) -> UserHash {
+        UserHash {
+            sam_account_name: name.to_string(),
+            rid,
+            nt_hash: nt,
+            lm_hash: lm,
+        }
+    }
+
+    /// Test format_entry with both NT and LM hashes.
+    #[test]
+    fn test_format_entry_both_hashes() {
+        let nt = [0x88, 0x46, 0xf7, 0xea, 0xee, 0x8f, 0xb1, 0x17,
+                   0xad, 0x06, 0xbd, 0xd8, 0x30, 0xb7, 0x58, 0x6c];
+        let lm = [0xaa, 0xd3, 0xb4, 0x35, 0xb5, 0x14, 0x04, 0xee,
+                   0xaa, 0xd3, 0xb4, 0x35, 0xb5, 0x14, 0x04, 0xee];
+        let entry = make_hash("Administrator", 500, Some(nt), Some(lm));
+        let result = format_entry(&entry);
+        assert_eq!(result, "Administrator:500:aad3b435b51404eeaad3b435b51404ee:8846f7eaee8fb117ad06bdd830b7586c:::");
+    }
+
+    /// Test format_entry with no hashes (empty hash placeholders).
+    #[test]
+    fn test_format_entry_no_hashes() {
+        let entry = make_hash("Guest", 501, None, None);
+        let result = format_entry(&entry);
+        assert_eq!(result, "Guest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::");
+    }
+
+    /// Test format_entry with only NT hash.
+    #[test]
+    fn test_format_entry_nt_only() {
+        let nt = [0xAB; 16];
+        let entry = make_hash("user1", 1001, Some(nt), None);
+        let result = format_entry(&entry);
+        assert!(result.starts_with("user1:1001:aad3b435b51404eeaad3b435b51404ee:abababababababababababababababab:::"));
+    }
+
+    /// Test write_hashes to a temp file.
+    #[test]
+    fn test_write_hashes_to_file() {
+        let entries = vec![
+            make_hash("zuser", 1002, None, None),
+            make_hash("auser", 1001, None, None),
+        ];
+        let dir = std::env::temp_dir().join("poneglyph_test_hashcat");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("hashes.txt");
+        write_hashes(&entries, Some(&path)).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        let lines: Vec<&str> = content.trim().lines().collect();
+        // Output should be sorted alphabetically
+        assert_eq!(lines.len(), 2);
+        assert!(lines[0].starts_with("auser:"));
+        assert!(lines[1].starts_with("zuser:"));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Test write_hashes with empty entries.
+    #[test]
+    fn test_write_hashes_empty() {
+        let dir = std::env::temp_dir().join("poneglyph_test_hashcat_empty");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("hashes_empty.txt");
+        write_hashes(&[], Some(&path)).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(content.trim(), "");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+// ==================== BloodHound Output Tests ====================
+
+mod bloodhound_tests {
+    use poneglyph_lib::objects::user::AdUser;
+    use poneglyph_lib::objects::computer::AdComputer;
+    use poneglyph_lib::objects::group::AdGroup;
+    use poneglyph_lib::objects::trust::AdTrust;
+    use poneglyph_lib::output::bloodhound::write_bloodhound;
+
+    fn make_user(name: &str, sid: &str, enabled: bool) -> AdUser {
+        AdUser {
+            sam_account_name: name.to_string(),
+            display_name: Some(format!("{} Display", name)),
+            user_principal_name: None,
+            sid: Some(sid.to_string()),
+            rid: Some(500),
+            description: None,
+            enabled,
+            user_account_control: 0x200,
+            uac_flags: vec!["NORMAL_ACCOUNT".to_string()],
+            admin_count: Some(1),
+            primary_group_id: Some(513),
+            when_created: Some("2024-01-01 00:00:00 UTC".to_string()),
+            when_changed: None,
+            pwd_last_set: Some("2024-06-01 12:00:00 UTC".to_string()),
+            last_logon: None,
+            last_logon_timestamp: None,
+            logon_count: None,
+            bad_pwd_count: None,
+            spns: vec!["MSSQLSvc/db01:1433".to_string()],
+            has_sid_history: false,
+            has_key_credential_link: false,
+            dnt: None,
+            has_nt_hash: true,
+            has_lm_hash: false,
+        }
+    }
+
+    fn make_group(name: &str, sid: &str, members: Vec<String>) -> AdGroup {
+        AdGroup {
+            sam_account_name: name.to_string(),
+            sid: Some(sid.to_string()),
+            rid: Some(512),
+            description: None,
+            group_type: -2147483646,
+            group_type_flags: vec!["Security".to_string(), "Global".to_string()],
+            admin_count: Some(1),
+            when_created: Some("2024-01-01 00:00:00 UTC".to_string()),
+            when_changed: None,
+            high_value: true,
+            dnt: None,
+            members,
+        }
+    }
+
+    fn make_computer(name: &str, sid: &str, is_dc: bool) -> AdComputer {
+        AdComputer {
+            sam_account_name: name.to_string(),
+            dns_hostname: Some(format!("{}.test.local", name.trim_end_matches('$'))),
+            sid: Some(sid.to_string()),
+            rid: Some(1000),
+            description: None,
+            enabled: true,
+            user_account_control: if is_dc { 0x2000 } else { 0x1000 },
+            uac_flags: vec![],
+            operating_system: Some("Windows Server 2022".to_string()),
+            os_version: None,
+            os_service_pack: None,
+            when_created: None,
+            when_changed: None,
+            last_logon: None,
+            last_logon_timestamp: None,
+            primary_group_id: Some(515),
+            is_dc,
+            dnt: None,
+        }
+    }
+
+    fn make_trust(partner: &str, sid: &str) -> AdTrust {
+        AdTrust {
+            trust_partner: partner.to_string(),
+            trust_direction: 3,
+            trust_direction_str: "Bidirectional".to_string(),
+            trust_type: 2,
+            trust_type_str: "Uplevel (AD)".to_string(),
+            trust_attributes: 0,
+            sid: Some(sid.to_string()),
+            when_created: None,
+        }
+    }
+
+    /// Test BloodHound JSON output generates all 4 files.
+    #[test]
+    fn test_bloodhound_generates_files() {
+        let dir = std::env::temp_dir().join("poneglyph_test_bloodhound");
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let users = vec![make_user("Administrator", "S-1-5-21-1000-2000-3000-500", true)];
+        let groups = vec![make_group("Domain Admins", "S-1-5-21-1000-2000-3000-512",
+            vec!["S-1-5-21-1000-2000-3000-500".to_string()])];
+        let computers = vec![make_computer("DC01$", "S-1-5-21-1000-2000-3000-1000", true)];
+        let trusts = vec![make_trust("child.test.local", "S-1-5-21-4000-5000-6000")];
+
+        write_bloodhound(&dir, "TEST.LOCAL", &users, &computers, &groups, &trusts).unwrap();
+
+        assert!(dir.join("users.json").exists(), "users.json should exist");
+        assert!(dir.join("groups.json").exists(), "groups.json should exist");
+        assert!(dir.join("computers.json").exists(), "computers.json should exist");
+        assert!(dir.join("domains.json").exists(), "domains.json should exist");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Test BloodHound users.json structure.
+    #[test]
+    fn test_bloodhound_users_json_structure() {
+        let dir = std::env::temp_dir().join("poneglyph_test_bh_users");
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let users = vec![make_user("admin", "S-1-5-21-1000-2000-3000-500", true)];
+        write_bloodhound(&dir, "TEST.LOCAL", &users, &[], &[], &[]).unwrap();
+
+        let content = std::fs::read_to_string(dir.join("users.json")).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&content).unwrap();
+
+        // Verify meta
+        assert_eq!(json["meta"]["type"], "users");
+        assert_eq!(json["meta"]["count"], 1);
+        assert_eq!(json["meta"]["version"], 5);
+
+        // Verify data
+        let data = &json["data"][0];
+        assert_eq!(data["ObjectIdentifier"], "S-1-5-21-1000-2000-3000-500");
+        assert_eq!(data["Properties"]["name"], "ADMIN@TEST.LOCAL");
+        assert_eq!(data["Properties"]["enabled"], true);
+        assert_eq!(data["Properties"]["hasspn"], true);
+        assert_eq!(data["PrimaryGroupSID"], "S-1-5-21-1000-2000-3000-513");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Test BloodHound groups.json includes members.
+    #[test]
+    fn test_bloodhound_groups_json_members() {
+        let dir = std::env::temp_dir().join("poneglyph_test_bh_groups");
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let groups = vec![make_group("Domain Admins", "S-1-5-21-1000-2000-3000-512",
+            vec!["S-1-5-21-1000-2000-3000-500".to_string()])];
+        write_bloodhound(&dir, "TEST.LOCAL", &[], &[], &groups, &[]).unwrap();
+
+        let content = std::fs::read_to_string(dir.join("groups.json")).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&content).unwrap();
+
+        let members = &json["data"][0]["Members"];
+        assert_eq!(members.as_array().unwrap().len(), 1);
+        assert_eq!(members[0]["ObjectIdentifier"], "S-1-5-21-1000-2000-3000-500");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Test BloodHound domains.json includes trust data.
+    #[test]
+    fn test_bloodhound_domains_json_trusts() {
+        let dir = std::env::temp_dir().join("poneglyph_test_bh_domains");
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let users = vec![make_user("admin", "S-1-5-21-1000-2000-3000-500", true)];
+        let trusts = vec![make_trust("child.test.local", "S-1-5-21-4000-5000-6000")];
+        write_bloodhound(&dir, "TEST.LOCAL", &users, &[], &[], &trusts).unwrap();
+
+        let content = std::fs::read_to_string(dir.join("domains.json")).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&content).unwrap();
+
+        let domain_trusts = &json["data"][0]["Trusts"];
+        assert_eq!(domain_trusts.as_array().unwrap().len(), 1);
+        assert_eq!(domain_trusts[0]["TargetDomainName"], "CHILD.TEST.LOCAL");
+        assert_eq!(domain_trusts[0]["TrustDirection"], "Bidirectional");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+// ==================== CSV Timeline Output Tests ====================
+
+mod csv_tests {
+    use poneglyph_lib::objects::user::AdUser;
+    use poneglyph_lib::objects::computer::AdComputer;
+    use poneglyph_lib::objects::group::AdGroup;
+    use poneglyph_lib::output::csv::write_timeline;
+
+    fn make_user_for_timeline(name: &str, created: Option<&str>, pwd_set: Option<&str>) -> AdUser {
+        AdUser {
+            sam_account_name: name.to_string(),
+            display_name: None,
+            user_principal_name: None,
+            sid: Some("S-1-5-21-1000-2000-3000-500".to_string()),
+            rid: Some(500),
+            description: None,
+            enabled: true,
+            user_account_control: 0x200,
+            uac_flags: vec![],
+            admin_count: None,
+            primary_group_id: None,
+            when_created: created.map(|s| s.to_string()),
+            when_changed: None,
+            pwd_last_set: pwd_set.map(|s| s.to_string()),
+            last_logon: None,
+            last_logon_timestamp: None,
+            logon_count: None,
+            bad_pwd_count: None,
+            spns: vec![],
+            has_sid_history: false,
+            has_key_credential_link: false,
+            dnt: None,
+            has_nt_hash: false,
+            has_lm_hash: false,
+        }
+    }
+
+    fn make_computer_for_timeline(name: &str, created: Option<&str>) -> AdComputer {
+        AdComputer {
+            sam_account_name: name.to_string(),
+            dns_hostname: Some(format!("{}.test.local", name.trim_end_matches('$'))),
+            sid: Some("S-1-5-21-1000-2000-3000-1000".to_string()),
+            rid: Some(1000),
+            description: None,
+            enabled: true,
+            user_account_control: 0x1000,
+            uac_flags: vec![],
+            operating_system: Some("Windows Server 2022".to_string()),
+            os_version: None,
+            os_service_pack: None,
+            when_created: created.map(|s| s.to_string()),
+            when_changed: None,
+            last_logon: None,
+            last_logon_timestamp: None,
+            primary_group_id: None,
+            is_dc: false,
+            dnt: None,
+        }
+    }
+
+    fn make_group_for_timeline(name: &str, created: Option<&str>) -> AdGroup {
+        AdGroup {
+            sam_account_name: name.to_string(),
+            sid: Some("S-1-5-21-1000-2000-3000-512".to_string()),
+            rid: Some(512),
+            description: None,
+            group_type: -2147483646,
+            group_type_flags: vec!["Security".to_string(), "Global".to_string()],
+            admin_count: None,
+            when_created: created.map(|s| s.to_string()),
+            when_changed: None,
+            high_value: false,
+            dnt: None,
+            members: vec![],
+        }
+    }
+
+    /// Test timeline CSV has correct header.
+    #[test]
+    fn test_timeline_csv_header() {
+        let dir = std::env::temp_dir().join("poneglyph_test_csv_header");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("timeline.csv");
+
+        write_timeline(&path, &[], &[], &[]).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        let first_line = content.lines().next().unwrap();
+        assert_eq!(first_line, "datetime,timestamp_desc,source,source_long,message,filename,inode,format,extra");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Test timeline with user events.
+    #[test]
+    fn test_timeline_user_events() {
+        let dir = std::env::temp_dir().join("poneglyph_test_csv_users");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("timeline.csv");
+
+        let users = vec![make_user_for_timeline("admin",
+            Some("2024-01-01 00:00:00 UTC"),
+            Some("2024-06-15 12:00:00 UTC"))];
+
+        write_timeline(&path, &users, &[], &[]).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        let lines: Vec<&str> = content.lines().collect();
+        // header + creation + password change = 3 lines
+        assert_eq!(lines.len(), 3);
+        assert!(lines[1].contains("Creation Time"));
+        assert!(lines[1].contains("NTDS-User"));
+        assert!(lines[2].contains("Password Change"));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Test timeline sorts by datetime.
+    #[test]
+    fn test_timeline_sorted_by_datetime() {
+        let dir = std::env::temp_dir().join("poneglyph_test_csv_sort");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("timeline.csv");
+
+        let users = vec![
+            make_user_for_timeline("late_user", Some("2024-12-01 00:00:00 UTC"), None),
+            make_user_for_timeline("early_user", Some("2024-01-01 00:00:00 UTC"), None),
+        ];
+
+        write_timeline(&path, &users, &[], &[]).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        let lines: Vec<&str> = content.lines().skip(1).collect(); // skip header
+        assert!(lines[0].contains("early_user"), "Earlier event should come first");
+        assert!(lines[1].contains("late_user"), "Later event should come second");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Test timeline includes computer events.
+    #[test]
+    fn test_timeline_computer_events() {
+        let dir = std::env::temp_dir().join("poneglyph_test_csv_comp");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("timeline.csv");
+
+        let computers = vec![make_computer_for_timeline("DC01$", Some("2024-01-01 00:00:00 UTC"))];
+        write_timeline(&path, &[], &computers, &[]).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.contains("NTDS-Computer"));
+        assert!(content.contains("DC01.test.local"));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Test timeline includes group events.
+    #[test]
+    fn test_timeline_group_events() {
+        let dir = std::env::temp_dir().join("poneglyph_test_csv_group");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("timeline.csv");
+
+        let groups = vec![make_group_for_timeline("Domain Admins", Some("2024-01-01 00:00:00 UTC"))];
+        write_timeline(&path, &[], &[], &groups).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.contains("NTDS-Group"));
+        assert!(content.contains("Domain Admins"));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Test timeline with no timestamps produces only the header.
+    #[test]
+    fn test_timeline_no_timestamps() {
+        let dir = std::env::temp_dir().join("poneglyph_test_csv_notimestamp");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("timeline.csv");
+
+        let users = vec![make_user_for_timeline("notime", None, None)];
+        write_timeline(&path, &users, &[], &[]).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        let lines: Vec<&str> = content.lines().collect();
+        assert_eq!(lines.len(), 1, "Only header should be present when no timestamps");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+// ==================== Graph Output Tests ====================
+
+mod graph_tests {
+    use poneglyph_lib::objects::user::AdUser;
+    use poneglyph_lib::objects::computer::AdComputer;
+    use poneglyph_lib::objects::group::AdGroup;
+    use poneglyph_lib::objects::trust::AdTrust;
+    use poneglyph_lib::output::graph::write_graph;
+
+    fn make_user(name: &str, sid: &str) -> AdUser {
+        AdUser {
+            sam_account_name: name.to_string(),
+            display_name: None,
+            user_principal_name: None,
+            sid: Some(sid.to_string()),
+            rid: Some(500),
+            description: None,
+            enabled: true,
+            user_account_control: 0x200,
+            uac_flags: vec![],
+            admin_count: Some(1),
+            primary_group_id: None,
+            when_created: None,
+            when_changed: None,
+            pwd_last_set: None,
+            last_logon: None,
+            last_logon_timestamp: None,
+            logon_count: None,
+            bad_pwd_count: None,
+            spns: vec![],
+            has_sid_history: false,
+            has_key_credential_link: false,
+            dnt: None,
+            has_nt_hash: true,
+            has_lm_hash: false,
+        }
+    }
+
+    fn make_computer(name: &str, sid: &str, is_dc: bool) -> AdComputer {
+        AdComputer {
+            sam_account_name: name.to_string(),
+            dns_hostname: Some(format!("{}.test.local", name.trim_end_matches('$'))),
+            sid: Some(sid.to_string()),
+            rid: Some(1000),
+            description: None,
+            enabled: true,
+            user_account_control: if is_dc { 0x2000 } else { 0x1000 },
+            uac_flags: vec![],
+            operating_system: Some("Windows Server 2022".to_string()),
+            os_version: None,
+            os_service_pack: None,
+            when_created: None,
+            when_changed: None,
+            last_logon: None,
+            last_logon_timestamp: None,
+            primary_group_id: None,
+            is_dc,
+            dnt: None,
+        }
+    }
+
+    fn make_group(name: &str, sid: &str, members: Vec<String>) -> AdGroup {
+        AdGroup {
+            sam_account_name: name.to_string(),
+            sid: Some(sid.to_string()),
+            rid: Some(512),
+            description: None,
+            group_type: -2147483646,
+            group_type_flags: vec!["Security".to_string(), "Global".to_string()],
+            admin_count: None,
+            when_created: None,
+            when_changed: None,
+            high_value: true,
+            dnt: None,
+            members,
+        }
+    }
+
+    fn make_trust(partner: &str, sid: &str) -> AdTrust {
+        AdTrust {
+            trust_partner: partner.to_string(),
+            trust_direction: 3,
+            trust_direction_str: "Bidirectional".to_string(),
+            trust_type: 2,
+            trust_type_str: "Uplevel (AD)".to_string(),
+            trust_attributes: 0,
+            sid: Some(sid.to_string()),
+            when_created: None,
+        }
+    }
+
+    /// Test graph JSON contains correct nodes and links structure.
+    #[test]
+    fn test_graph_structure() {
+        let dir = std::env::temp_dir().join("poneglyph_test_graph");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("graph.json");
+
+        let users = vec![make_user("admin", "S-1-5-21-1000-2000-3000-500")];
+        let computers = vec![make_computer("DC01$", "S-1-5-21-1000-2000-3000-1000", true)];
+        let groups = vec![make_group("Domain Admins", "S-1-5-21-1000-2000-3000-512",
+            vec!["S-1-5-21-1000-2000-3000-500".to_string()])];
+        let trusts = vec![make_trust("child.test.local", "S-1-5-21-4000-5000-6000")];
+
+        write_graph(&path, &users, &computers, &groups, &trusts).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&content).unwrap();
+
+        // nodes: 1 user + 1 computer + 1 group + 1 trust domain = 4
+        let nodes = json["nodes"].as_array().unwrap();
+        assert_eq!(nodes.len(), 4);
+
+        // links: 1 MemberOf + 1 Trust = 2
+        let links = json["links"].as_array().unwrap();
+        assert_eq!(links.len(), 2);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Test graph node types are correct.
+    #[test]
+    fn test_graph_node_types() {
+        let dir = std::env::temp_dir().join("poneglyph_test_graph_types");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("graph.json");
+
+        let users = vec![make_user("admin", "S-1-5-21-1-2-3-500")];
+        let computers = vec![
+            make_computer("DC01$", "S-1-5-21-1-2-3-1000", true),
+            make_computer("WS01$", "S-1-5-21-1-2-3-1001", false),
+        ];
+
+        write_graph(&path, &users, &computers, &[], &[]).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&content).unwrap();
+
+        let nodes = json["nodes"].as_array().unwrap();
+        let user_node = nodes.iter().find(|n| n["id"] == "S-1-5-21-1-2-3-500").unwrap();
+        assert_eq!(user_node["type"], "user");
+
+        let dc_node = nodes.iter().find(|n| n["id"] == "S-1-5-21-1-2-3-1000").unwrap();
+        assert_eq!(dc_node["type"], "dc");
+
+        let ws_node = nodes.iter().find(|n| n["id"] == "S-1-5-21-1-2-3-1001").unwrap();
+        assert_eq!(ws_node["type"], "computer");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Test graph MemberOf links are correct.
+    #[test]
+    fn test_graph_membership_links() {
+        let dir = std::env::temp_dir().join("poneglyph_test_graph_links");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("graph.json");
+
+        let groups = vec![make_group("Admins", "S-1-5-21-1-2-3-512",
+            vec!["S-1-5-21-1-2-3-500".to_string(), "S-1-5-21-1-2-3-501".to_string()])];
+
+        write_graph(&path, &[], &[], &groups, &[]).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&content).unwrap();
+
+        let links = json["links"].as_array().unwrap();
+        assert_eq!(links.len(), 2);
+        assert!(links.iter().all(|l| l["type"] == "MemberOf"));
+        assert!(links.iter().all(|l| l["target"] == "S-1-5-21-1-2-3-512"));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Test graph skips objects without SID.
+    #[test]
+    fn test_graph_skips_no_sid() {
+        let dir = std::env::temp_dir().join("poneglyph_test_graph_nosid");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("graph.json");
+
+        let mut user = make_user("no_sid_user", "");
+        user.sid = None;
+
+        write_graph(&path, &[user], &[], &[], &[]).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&content).unwrap();
+
+        let nodes = json["nodes"].as_array().unwrap();
+        assert_eq!(nodes.len(), 0, "User without SID should be skipped");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Test graph with empty inputs.
+    #[test]
+    fn test_graph_empty() {
+        let dir = std::env::temp_dir().join("poneglyph_test_graph_empty");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("graph.json");
+
+        write_graph(&path, &[], &[], &[], &[]).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&content).unwrap();
+
+        assert_eq!(json["nodes"].as_array().unwrap().len(), 0);
+        assert_eq!(json["links"].as_array().unwrap().len(), 0);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+// ==================== ACL Object ACE Tests ====================
+
+mod acl_object_ace_tests {
+    use poneglyph_lib::acl::parse_security_descriptor;
+
+    /// Build a minimal valid security descriptor with a DACL.
+    fn build_sd_with_dacl(dacl: &[u8]) -> Vec<u8> {
+        let dacl_offset = 20u32;
+        let mut sd = Vec::new();
+        sd.push(1);  // revision
+        sd.push(0);  // sbz1
+        sd.extend_from_slice(&0x8004u16.to_le_bytes()); // control: SE_DACL_PRESENT | SE_SELF_RELATIVE
+        sd.extend_from_slice(&0u32.to_le_bytes()); // owner offset
+        sd.extend_from_slice(&0u32.to_le_bytes()); // group offset
+        sd.extend_from_slice(&0u32.to_le_bytes()); // sacl offset
+        sd.extend_from_slice(&dacl_offset.to_le_bytes()); // dacl offset
+        sd.extend_from_slice(dacl);
+        sd
+    }
+
+    fn build_acl_header(ace_count: u16, aces: &[u8]) -> Vec<u8> {
+        let acl_size = 8 + aces.len() as u16;
+        let mut acl = Vec::new();
+        acl.push(2); // revision
+        acl.push(0); // sbz1
+        acl.extend_from_slice(&acl_size.to_le_bytes());
+        acl.extend_from_slice(&ace_count.to_le_bytes());
+        acl.extend_from_slice(&0u16.to_le_bytes()); // sbz2
+        acl.extend_from_slice(aces);
+        acl
+    }
+
+    fn build_simple_sid() -> Vec<u8> {
+        let mut s = vec![1u8, 4]; // revision=1, sub_auth_count=4
+        s.extend_from_slice(&[0, 0, 0, 0, 0, 5]); // authority=5
+        s.extend_from_slice(&21u32.to_le_bytes());
+        s.extend_from_slice(&1000u32.to_le_bytes());
+        s.extend_from_slice(&2000u32.to_le_bytes());
+        s.extend_from_slice(&1001u32.to_be_bytes()); // RID in BE
+        s
+    }
+
+    /// Test ACCESS_DENIED_ACE is skipped (only ALLOWED types are processed).
+    #[test]
+    fn test_access_denied_ace_skipped() {
+        let sid_bytes = build_simple_sid();
+        let ace_size = (4 + 4 + sid_bytes.len()) as u16;
+        let mut ace = Vec::new();
+        ace.push(0x01); // type: ACCESS_DENIED_ACE (not processed)
+        ace.push(0x00); // flags
+        ace.extend_from_slice(&ace_size.to_le_bytes());
+        ace.extend_from_slice(&0x10000000u32.to_le_bytes()); // mask: GENERIC_ALL
+        ace.extend_from_slice(&sid_bytes);
+
+        let dacl = build_acl_header(1, &ace);
+        let sd = build_sd_with_dacl(&dacl);
+        let result = parse_security_descriptor(&sd).unwrap();
+
+        // ACCESS_DENIED_ACE is not a BloodHound-relevant edge, so it should be skipped
+        assert_eq!(result.len(), 0);
+    }
+
+    /// Test inherited ACE detection.
+    #[test]
+    fn test_inherited_ace_flag() {
+        let sid_bytes = build_simple_sid();
+        let ace_size = (4 + 4 + sid_bytes.len()) as u16;
+        let mut ace = Vec::new();
+        ace.push(0x00); // type: ACCESS_ALLOWED_ACE
+        ace.push(0x10); // flags: INHERITED_ACE (0x10)
+        ace.extend_from_slice(&ace_size.to_le_bytes());
+        ace.extend_from_slice(&0x10000000u32.to_le_bytes()); // mask: GENERIC_ALL
+        ace.extend_from_slice(&sid_bytes);
+
+        let dacl = build_acl_header(1, &ace);
+        let sd = build_sd_with_dacl(&dacl);
+        let result = parse_security_descriptor(&sd).unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert!(result[0].is_inherited, "ACE should be marked as inherited");
+    }
+
+    /// Test multiple ALLOW ACEs in a single DACL.
+    #[test]
+    fn test_multiple_aces() {
+        let sid_bytes = build_simple_sid();
+        let ace_size = (4 + 4 + sid_bytes.len()) as u16;
+
+        let mut aces = Vec::new();
+
+        // ACE 1: ALLOW GenericAll
+        aces.push(0x00);
+        aces.push(0x00);
+        aces.extend_from_slice(&ace_size.to_le_bytes());
+        aces.extend_from_slice(&0x10000000u32.to_le_bytes()); // GENERIC_ALL
+        aces.extend_from_slice(&sid_bytes);
+
+        // ACE 2: ALLOW WriteDacl
+        aces.push(0x00);
+        aces.push(0x00);
+        aces.extend_from_slice(&ace_size.to_le_bytes());
+        aces.extend_from_slice(&0x00040000u32.to_le_bytes()); // WRITE_DACL
+        aces.extend_from_slice(&sid_bytes);
+
+        let dacl = build_acl_header(2, &aces);
+        let sd = build_sd_with_dacl(&dacl);
+        let result = parse_security_descriptor(&sd).unwrap();
+
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].right_name, "GenericAll");
+        assert_eq!(result[1].right_name, "WriteDacl");
+    }
+
+    /// Test WriteDacl right detection.
+    #[test]
+    fn test_write_dacl_right() {
+        let sid_bytes = build_simple_sid();
+        let ace_size = (4 + 4 + sid_bytes.len()) as u16;
+        let mut ace = Vec::new();
+        ace.push(0x00); // ACCESS_ALLOWED
+        ace.push(0x00);
+        ace.extend_from_slice(&ace_size.to_le_bytes());
+        ace.extend_from_slice(&0x00040000u32.to_le_bytes()); // WRITE_DACL
+        ace.extend_from_slice(&sid_bytes);
+
+        let dacl = build_acl_header(1, &ace);
+        let sd = build_sd_with_dacl(&dacl);
+        let result = parse_security_descriptor(&sd).unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].right_name, "WriteDacl");
+    }
+}

@@ -16,7 +16,7 @@ mod mcp;
 
 #[derive(Parser)]
 #[command(name = "poneglyph")]
-#[command(version = "0.2.0")]
+#[command(version)]
 #[command(about = "NTDS.dit forensic analysis tool - part of GolDRoger suite")]
 #[command(long_about = "Poneglyph decodes the secrets hidden within Active Directory's NTDS.dit database.\nLike the ancient stones that reveal hidden history, this tool reads the binary\nstructure of ESE databases to extract users, groups, relationships, and attack paths.")]
 struct Cli {

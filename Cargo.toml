@@ -1,6 +1,6 @@
 [package]
 name = "poneglyph"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "NTDS.dit forensic analysis and visualization tool for GolDRoger"
 license = "LGPL-3.0-or-later"
@@ -66,10 +66,8 @@ tokio = { version = "1", features = ["full"] }
 schemars = "1.0"
 
 # Windows Server 2025 (32KB page) support requires patched libesedb-sys.
-# See libesedb-patches/ directory and README for instructions.
-# Uncomment below and set the path to your patched libesedb-sys:
-# [patch.crates-io]
-# libesedb-sys = { path = "path/to/libesedb-sys-patched" }
+[patch.crates-io]
+libesedb-sys = { path = "C:/dev/libesedb-sys-patched" }
 
 [profile.release]
 opt-level = 2
