@@ -274,9 +274,23 @@ pub fn write_forensics_timeline(
 }
 
 fn csv_escape(s: &str) -> String {
-    if s.contains(',') || s.contains('"') || s.contains('\n') {
-        format!("\"{}\"", s.replace('"', "\"\""))
+    // Neutralize spreadsheet formula injection: an attacker-controlled AD field
+    // (sAMAccountName, description, SPN, ...) beginning with a formula trigger
+    // would execute when the timeline CSV is opened in Excel/LibreOffice. Prefix
+    // a single quote so such fields are imported as literal text.
+    let mut out = String::with_capacity(s.len() + 3);
+    if matches!(
+        s.as_bytes().first(),
+        Some(b'=') | Some(b'+') | Some(b'-') | Some(b'@') | Some(b'\t') | Some(b'\r')
+    ) {
+        out.push('\'');
+    }
+    out.push_str(s);
+
+    // Quote if the field contains a delimiter, quote, or line break (CR included).
+    if out.contains(',') || out.contains('"') || out.contains('\n') || out.contains('\r') {
+        format!("\"{}\"", out.replace('"', "\"\""))
     } else {
-        s.to_string()
+        out
     }
 }

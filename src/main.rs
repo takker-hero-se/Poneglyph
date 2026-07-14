@@ -303,7 +303,9 @@ fn cmd_hashes(
     // Step 1: Extract BootKey from SYSTEM hive
     println!("[1/4] Extracting BootKey from SYSTEM hive...");
     let bootkey = bootkey::extract_bootkey(system_path)?;
-    println!("  BootKey: {}", hex::encode(bootkey));
+    // Master key material — keep off stdout (which may be redirected to a log);
+    // show only under --verbose (debug level).
+    log::debug!("BootKey: {}", hex::encode(bootkey));
 
     // Step 2: Open NTDS.dit and extract encrypted PEK
     println!("[2/4] Extracting encrypted PEK from NTDS.dit...");
@@ -313,7 +315,7 @@ fn cmd_hashes(
     // Step 3: Decrypt PEK using BootKey
     println!("[3/4] Decrypting PEK...");
     let pek = crypto::decrypt_pek(&encrypted_pek, &bootkey)?;
-    println!("  PEK: {}", hex::encode(pek));
+    log::debug!("PEK: {}", hex::encode(pek));
 
     // Step 4: Extract and decrypt user hashes
     println!("[4/4] Extracting and decrypting password hashes...");
@@ -328,6 +330,12 @@ fn cmd_hashes(
             .and_then(|enc| crypto::decrypt_hash(enc, &pek, raw.rid));
         let lm_hash = raw.encrypted_lm_hash.as_ref()
             .and_then(|enc| crypto::decrypt_hash(enc, &pek, raw.rid));
+
+        // A present-but-undecryptable blob is a real failure, not a blank password.
+        // Surface it so an examiner never mistakes an empty-hash placeholder for fact.
+        if raw.encrypted_nt_hash.is_some() && nt_hash.is_none() {
+            log::warn!("NT hash present but failed to decrypt for {} (RID {})", raw.sam_account_name, raw.rid);
+        }
 
         if nt_hash.is_some() || lm_hash.is_some() {
             success_count += 1;
@@ -491,6 +499,10 @@ fn cmd_dump(
                 .and_then(|enc| crypto::decrypt_hash(enc, &pek, raw.rid));
             let lm_hash = raw.encrypted_lm_hash.as_ref()
                 .and_then(|enc| crypto::decrypt_hash(enc, &pek, raw.rid));
+
+            if raw.encrypted_nt_hash.is_some() && nt_hash.is_none() {
+                log::warn!("NT hash present but failed to decrypt for {} (RID {})", raw.sam_account_name, raw.rid);
+            }
 
             user_hashes.push(crypto::UserHash {
                 sam_account_name: raw.sam_account_name.clone(),

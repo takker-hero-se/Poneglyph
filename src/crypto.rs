@@ -135,12 +135,14 @@ pub fn decrypt_hash(encrypted: &[u8], pek: &[u8; 16], rid: u32) -> Option<[u8; 1
         }
         let salt = &encrypted[8..24];
         let data = &encrypted[24..];
-        // AES-CBC requires data to be a multiple of 16; truncate to block boundary
-        let block_len = (data.len() / 16) * 16;
-        if block_len == 0 {
+        // AES-CBC requires block-aligned input. A standard NT/LM hash blob is
+        // exactly one 16-byte block; a non-aligned length means a malformed or
+        // unexpected record. Reject it rather than silently decrypting a
+        // truncated prefix and emitting a plausible-but-wrong hash (evidence integrity).
+        if data.is_empty() || data.len() % 16 != 0 {
             return None;
         }
-        let decrypted = aes_128_cbc_decrypt(pek, salt, &data[..block_len]).ok()?;
+        let decrypted = aes_128_cbc_decrypt(pek, salt, data).ok()?;
         if decrypted.len() < 16 {
             return None;
         }
@@ -251,6 +253,13 @@ pub fn compute_rc4_key(key: &[u8], salt: &[u8], iterations: usize) -> [u8; 16] {
 
 /// RC4 stream cipher (encrypt = decrypt).
 pub fn rc4_crypt(key: &[u8], data: &[u8]) -> Vec<u8> {
+    // RC4 requires a non-empty key; `key[i % key.len()]` would divide by zero.
+    // Production callers always pass a 16-byte MD5-derived key, but guard the
+    // public API so a degenerate key can never panic the process mid-extraction.
+    if key.is_empty() {
+        return data.to_vec();
+    }
+
     let mut s: [u8; 256] = [0; 256];
     for i in 0..256 {
         s[i] = i as u8;

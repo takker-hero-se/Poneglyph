@@ -183,6 +183,11 @@ fn parse_allowed_object_ace(data: &[u8], is_inherited: bool) -> Option<Vec<AceEn
 
     // ACE_INHERITED_OBJECT_TYPE_PRESENT = 0x02
     if object_flags & 0x02 != 0 {
+        // Bounds-check before advancing (mirrors the 0x01 branch) so a crafted
+        // ACE cannot push `offset` past the SID and misparse the principal.
+        if offset + 16 > data.len() {
+            return None;
+        }
         offset += 16; // Skip inherited object type
     }
 

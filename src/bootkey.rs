@@ -17,7 +17,21 @@ const LSA_KEY_NAMES: [&str; 4] = ["JD", "Skew1", "GBG", "Data"];
 /// 2. Navigate to ControlSetXXX\Control\Lsa
 /// 3. Read class names of JD, Skew1, GBG, Data subkeys
 /// 4. Concatenate hex strings, decode to bytes, apply permutation
+/// Upper bound on the SYSTEM hive size read into memory. Real hives are a few
+/// tens of MB; this guards against OOM when an untrusted/mistaken path (e.g. via
+/// the MCP server) points at a huge file.
+const MAX_HIVE_SIZE: u64 = 512 * 1024 * 1024; // 512 MiB
+
 pub fn extract_bootkey(system_hive_path: &Path) -> Result<[u8; 16]> {
+    let meta = std::fs::metadata(system_hive_path)
+        .context(format!("Failed to stat SYSTEM hive: {}", system_hive_path.display()))?;
+    if meta.len() > MAX_HIVE_SIZE {
+        bail!(
+            "SYSTEM hive too large ({} bytes, max {}); refusing to read into memory",
+            meta.len(), MAX_HIVE_SIZE
+        );
+    }
+
     let data = std::fs::read(system_hive_path)
         .context(format!("Failed to read SYSTEM hive: {}", system_hive_path.display()))?;
 
@@ -50,7 +64,9 @@ pub fn extract_bootkey(system_hive_path: &Path) -> Result<[u8; 16]> {
         hex_string.push_str(&class_name.to_string_lossy());
     }
 
-    log::debug!("LSA class names concatenated: {}", hex_string);
+    // Do NOT log the concatenated class names — they are the pre-permutation
+    // SYSKEY material. Length only.
+    log::trace!("LSA class names concatenated ({} hex chars)", hex_string.len());
 
     // Decode hex -> raw bytes
     let raw_bytes = hex::decode(&hex_string)
@@ -66,7 +82,9 @@ pub fn extract_bootkey(system_hive_path: &Path) -> Result<[u8; 16]> {
         bootkey[i] = raw_bytes[BOOTKEY_PERMUTATION[i]];
     }
 
-    log::info!("BootKey extracted: {}", hex::encode(bootkey));
+    // The BootKey is master key material — never log its value at info level.
+    log::info!("BootKey extracted ({} bytes)", bootkey.len());
+    log::trace!("BootKey value: {}", hex::encode(bootkey));
     Ok(bootkey)
 }
 
