@@ -246,7 +246,7 @@ fn cmd_users(
     let db = ese::NtdsDatabase::open(ntds_path)?;
     let users = objects::user::extract_users(&db, include_disabled)?;
 
-    println!("Extracted {} user accounts", users.len());
+    eprintln!("Extracted {} user accounts", users.len());
 
     let content = match format {
         "json" => serde_json::to_string_pretty(&users)?,

@@ -125,6 +125,75 @@ mod crypto_tests {
         assert!(result.is_none(), "decrypt_hash should return None for short input");
     }
 
+    /// Regression KAT for the per-hash RC4 key derivation (CRITICAL fix).
+    ///
+    /// impacket `NTDSHashes.__removeRC4Layer` derives the per-hash RC4 key as
+    /// `MD5(PEK || KeyMaterial)` — the salt is fed **exactly once**. (The
+    /// 1000-iteration construction is correct only for the PEK-list decryption
+    /// in `decrypt_pek`.) This test assembles an RC4-format hash blob using the
+    /// impacket-correct single salt update and asserts `decrypt_hash` recovers
+    /// the original NT hash. If `decrypt_hash` regresses to 1000 iterations, the
+    /// RC4 keystream no longer matches and this round-trip fails.
+    #[test]
+    fn test_decrypt_hash_rc4_roundtrip() {
+        use des::Des;
+        use cipher::{BlockEncrypt, KeyInit};
+        use cipher::generic_array::GenericArray;
+
+        // Well-known empty-password NT hash, used here as an arbitrary known plaintext.
+        let nt_hash: [u8; 16] = [
+            0x31, 0xd6, 0xcf, 0xe0, 0xd1, 0x6a, 0xe9, 0x31,
+            0xb7, 0x3c, 0x59, 0xd7, 0xe0, 0xc0, 0x89, 0xc0,
+        ];
+        let pek = [0xAAu8; 16];
+        let salt = [0x42u8; 16];
+        let rid: u32 = 1103;
+
+        // 1. Build the DES layer (inverse of remove_des_layer, which DES-*decrypts*).
+        let (k1, k2) = poneglyph_lib::crypto::rid_to_des_keys(rid);
+        let c1 = Des::new_from_slice(&k1).unwrap();
+        let c2 = Des::new_from_slice(&k2).unwrap();
+        let mut b1 = GenericArray::clone_from_slice(&nt_hash[0..8]);
+        let mut b2 = GenericArray::clone_from_slice(&nt_hash[8..16]);
+        c1.encrypt_block(&mut b1);
+        c2.encrypt_block(&mut b2);
+        let mut des_encrypted = [0u8; 16];
+        des_encrypted[0..8].copy_from_slice(&b1);
+        des_encrypted[8..16].copy_from_slice(&b2);
+
+        // 2. Build the RC4 layer with the impacket-correct SINGLE salt update.
+        let rc4_key = poneglyph_lib::crypto::compute_rc4_key(&pek, &salt, 1);
+        let rc4_encrypted = poneglyph_lib::crypto::rc4_crypt(&rc4_key, &des_encrypted);
+
+        // 3. Assemble the RC4-format blob: header(8) + salt(16) + encrypted(16).
+        //    Header bytes 0..4 must NOT equal 0x00000013 (that selects the AES branch).
+        let mut blob = vec![0u8; 8];
+        blob.extend_from_slice(&salt);
+        blob.extend_from_slice(&rc4_encrypted);
+        assert_eq!(blob.len(), 40);
+
+        let recovered = poneglyph_lib::crypto::decrypt_hash(&blob, &pek, rid)
+            .expect("decrypt_hash should recover a hash from a well-formed RC4 blob");
+        assert_eq!(
+            recovered, nt_hash,
+            "RC4-format hash round-trip mismatch — per-hash RC4 key iteration count regressed?"
+        );
+    }
+
+    /// The per-hash RC4 key (1 salt update) must differ from the PEK-list key
+    /// (1000 updates); guards against ever conflating the two salt regimes again.
+    #[test]
+    fn test_rc4_key_iteration_regimes_differ() {
+        let pek = [0xAAu8; 16];
+        let salt = [0x42u8; 16];
+        let per_hash = poneglyph_lib::crypto::compute_rc4_key(&pek, &salt, 1);
+        let pek_list = poneglyph_lib::crypto::compute_rc4_key(&pek, &salt, 1000);
+        assert_ne!(
+            per_hash, pek_list,
+            "1-iteration (per-hash) and 1000-iteration (PEK-list) RC4 keys must differ"
+        );
+    }
+
     /// Test decrypt_pek rejects too-short input.
     #[test]
     fn test_decrypt_pek_short_input() {

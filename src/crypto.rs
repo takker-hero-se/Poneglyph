@@ -114,11 +114,10 @@ pub fn decrypt_pek(encrypted_pek: &[u8], bootkey: &[u8; 16]) -> Result<[u8; 16]>
 ///   Bytes 24-39: RC4-encrypted hash
 ///
 /// Modern AES format (Win2016+):
-///   Bytes 0-3:   version marker (0x001a113)
-///   Bytes 4-7:   unknown
-///   Bytes 8-11:  unknown
-///   Bytes 12-27: salt/IV (16 bytes)
-///   Bytes 28+:   AES-encrypted hash
+///   Bytes 0-3:   version marker (0x13 = AES, bytes: 13 00 00 00)
+///   Bytes 4-7:   flags
+///   Bytes 8-23:  salt/IV (16 bytes)
+///   Bytes 24+:   AES-encrypted hash
 ///
 /// After PEK decryption, the hash is still DES-encrypted with the user's RID.
 pub fn decrypt_hash(encrypted: &[u8], pek: &[u8; 16], rid: u32) -> Option<[u8; 16]> {
@@ -128,15 +127,20 @@ pub fn decrypt_hash(encrypted: &[u8], pek: &[u8; 16], rid: u32) -> Option<[u8; 1
 
     let version_marker = u32::from_le_bytes(encrypted[0..4].try_into().ok()?);
 
-    let pek_decrypted = if version_marker == 0x0013a1_01 {
-        // AES (Win2016+): marker is 0x13A101 at bytes 0-3
-        if encrypted.len() < 44 {
+    let pek_decrypted = if version_marker == 0x00000013 {
+        // AES (Win2016+): marker = 0x13 (decimal 19)
+        // Structure: Header(8) + IV(16) + EncryptedHash(variable)
+        if encrypted.len() < 40 {
             return None;
         }
-        let salt = &encrypted[12..28];
-        let data = &encrypted[28..];
-        let decrypted = aes_128_cbc_decrypt(pek, salt, data).ok()?;
-        // AES decrypted data: first 16 bytes are the DES-encrypted hash
+        let salt = &encrypted[8..24];
+        let data = &encrypted[24..];
+        // AES-CBC requires data to be a multiple of 16; truncate to block boundary
+        let block_len = (data.len() / 16) * 16;
+        if block_len == 0 {
+            return None;
+        }
+        let decrypted = aes_128_cbc_decrypt(pek, salt, &data[..block_len]).ok()?;
         if decrypted.len() < 16 {
             return None;
         }
@@ -148,7 +152,11 @@ pub fn decrypt_hash(encrypted: &[u8], pek: &[u8; 16], rid: u32) -> Option<[u8; 1
         }
         let salt = &encrypted[8..24];
         let data = &encrypted[24..40];
-        let rc4_key = compute_rc4_key(pek, salt, 1000);
+        // Per-hash RC4 key = MD5(PEK || KeyMaterial), salt fed EXACTLY ONCE
+        // (impacket NTDSHashes.__removeRC4Layer). The 1000-iteration construction
+        // is correct ONLY for the PEK-list decryption in decrypt_pek() above —
+        // using it here silently corrupts every legacy RC4-format NT/LM hash.
+        let rc4_key = compute_rc4_key(pek, salt, 1);
         rc4_crypt(&rc4_key, data)
     };
 

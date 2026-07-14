@@ -47,7 +47,7 @@ pub fn parse_sid(data: &[u8]) -> Option<String> {
         let offset = 8 + i * 4;
         let bytes = [data[offset], data[offset + 1], data[offset + 2], data[offset + 3]];
         let sub = if i == sub_authority_count - 1 {
-            u32::from_be_bytes(bytes) // RID: big-endian
+            u32::from_be_bytes(bytes) // RID: big-endian in NTDS.dit ESE
         } else {
             u32::from_le_bytes(bytes) // Others: little-endian
         };
