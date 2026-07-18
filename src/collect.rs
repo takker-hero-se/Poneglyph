@@ -1,5 +1,4 @@
 use anyhow::{Context, Result, bail};
-use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -437,11 +436,11 @@ pub fn zip_collected_files(output_dir: &Path) -> Result<PathBuf> {
         zip.start_file(&file_name, options)
             .context(format!("Failed to add {} to zip", file_name))?;
 
+        // Stream in fixed-size chunks rather than reading the whole file into memory:
+        // NTDS.dit can be many GB, so read_to_end would risk OOM.
         let mut f = std::fs::File::open(&path)
             .context(format!("Failed to open {}", path.display()))?;
-        let mut buf = Vec::new();
-        f.read_to_end(&mut buf)?;
-        zip.write_all(&buf)?;
+        std::io::copy(&mut f, &mut zip)?;
 
         count += 1;
         log::debug!("Added to zip: {}", file_name);

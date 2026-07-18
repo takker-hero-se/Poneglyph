@@ -120,8 +120,8 @@ pub fn write_timeline(
     // Sort by datetime
     entries.sort_by(|a, b| a.datetime.cmp(&b.datetime));
 
-    // Write CSV
-    let mut file = std::fs::File::create(output_path)?;
+    // Write CSV (buffered: one writeln! per event would otherwise be one syscall each).
+    let mut file = std::io::BufWriter::new(std::fs::File::create(output_path)?);
     writeln!(file, "datetime,timestamp_desc,source,source_long,message,filename,inode,format,extra")?;
     for e in &entries {
         writeln!(file, "{},{},{},Active Directory,{},ntds.dit,-,ntds,{}",
@@ -132,6 +132,7 @@ pub fn write_timeline(
             csv_escape(&e.extra),
         )?;
     }
+    file.flush()?;
 
     log::info!("Written {} timeline events to {}", entries.len(), output_path.display());
     Ok(())
@@ -256,8 +257,8 @@ pub fn write_forensics_timeline(
     // Sort by datetime
     entries.sort_by(|a, b| a.datetime.cmp(&b.datetime));
 
-    // Write CSV
-    let mut file = std::fs::File::create(output_path)?;
+    // Write CSV (buffered: one writeln! per event would otherwise be one syscall each).
+    let mut file = std::io::BufWriter::new(std::fs::File::create(output_path)?);
     writeln!(file, "datetime,timestamp_desc,source,source_long,message,filename,inode,format,extra")?;
     for e in &entries {
         writeln!(file, "{},{},{},Active Directory,{},ntds.dit,-,ntds,{}",
@@ -268,6 +269,7 @@ pub fn write_forensics_timeline(
             csv_escape(&e.extra),
         )?;
     }
+    file.flush()?;
 
     log::info!("Written {} forensic timeline events to {}", entries.len(), output_path.display());
     Ok(())

@@ -5,9 +5,7 @@ pub mod gpo;
 pub mod trust;
 
 use anyhow::{Context, Result};
-use byteorder::{LittleEndian, ReadBytesExt};
 use std::collections::HashMap;
-use std::io::Cursor;
 
 use crate::ese::NtdsDatabase;
 use crate::schema;

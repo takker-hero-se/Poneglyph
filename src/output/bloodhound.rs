@@ -206,9 +206,11 @@ fn write_domains_json(
 }
 
 fn write_json_file(path: &Path, value: &Value) -> Result<()> {
-    let content = serde_json::to_string_pretty(value)?;
-    let mut file = std::fs::File::create(path)?;
-    file.write_all(content.as_bytes())?;
+    // Stream JSON straight to a buffered file rather than materializing the whole
+    // document as one String first (can be hundreds of MB for a large domain).
+    let mut file = std::io::BufWriter::new(std::fs::File::create(path)?);
+    serde_json::to_writer_pretty(&mut file, value)?;
     file.write_all(b"\n")?;
+    file.flush()?;
     Ok(())
 }

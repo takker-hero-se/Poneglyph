@@ -100,10 +100,11 @@ pub fn write_graph(
         "links": links,
     });
 
-    let content = serde_json::to_string_pretty(&graph)?;
-    let mut file = std::fs::File::create(output_path)?;
-    file.write_all(content.as_bytes())?;
+    // Stream JSON straight to a buffered file rather than building one large String.
+    let mut file = std::io::BufWriter::new(std::fs::File::create(output_path)?);
+    serde_json::to_writer_pretty(&mut file, &graph)?;
     file.write_all(b"\n")?;
+    file.flush()?;
 
     log::info!("Written graph JSON with {} nodes, {} links to {}",
         nodes.len(), links.len(), output_path.display());
