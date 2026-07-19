@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ese::NtdsDatabase;
 use crate::schema;
-use crate::objects::{parse_sid, extract_rid, filetime_to_string, get_string_value, get_i32_value, get_i64_value, get_binary_value};
+use crate::objects::{parse_sid, extract_rid, filetime_to_string, filetime_to_epoch, get_string_value, get_i32_value, get_i64_value, get_binary_value};
 
 /// Raw encrypted hash data for a user, ready for PEK + DES decryption.
 pub struct RawUserHash {
@@ -45,6 +45,14 @@ pub struct AdUser {
     /// DNT (internal database key) - used for relationship resolution
     #[serde(skip_serializing)]
     pub dnt: Option<i32>,
+
+    /// Unix epoch (seconds) of last_logon_timestamp / when_created — internal, used
+    /// by anomaly rules for numeric date comparison. Not serialized (the formatted
+    /// string fields above are the public representation).
+    #[serde(skip_serializing)]
+    pub last_logon_ts_epoch: Option<i64>,
+    #[serde(skip_serializing)]
+    pub when_created_epoch: Option<i64>,
 
     /// Whether this account has encrypted NT hash data
     pub has_nt_hash: bool,
@@ -179,10 +187,14 @@ pub fn extract_users(db: &NtdsDatabase, include_disabled: bool) -> Result<Vec<Ad
             .and_then(filetime_to_string);
         let last_logon = get_i64_value(&record, cols.last_logon)
             .and_then(filetime_to_string);
-        let last_logon_ts = get_i64_value(&record, cols.last_logon_timestamp)
-            .and_then(filetime_to_string);
-        let when_created = get_i64_value(&record, cols.when_created)
-            .and_then(filetime_to_string);
+        // Keep the raw FILETIME so anomaly rules can compare epoch integers rather
+        // than lexically ordering formatted date strings (fragile if the format changes).
+        let last_logon_ts_raw = get_i64_value(&record, cols.last_logon_timestamp);
+        let last_logon_ts = last_logon_ts_raw.and_then(filetime_to_string);
+        let last_logon_ts_epoch = last_logon_ts_raw.and_then(filetime_to_epoch);
+        let when_created_raw = get_i64_value(&record, cols.when_created);
+        let when_created = when_created_raw.and_then(filetime_to_string);
+        let when_created_epoch = when_created_raw.and_then(filetime_to_epoch);
         let when_changed = get_i64_value(&record, cols.when_changed)
             .and_then(filetime_to_string);
 
@@ -222,6 +234,8 @@ pub fn extract_users(db: &NtdsDatabase, include_disabled: bool) -> Result<Vec<Ad
             has_sid_history: get_binary_value(&record, cols.sid_history).is_some(),
             has_key_credential_link: get_binary_value(&record, cols.key_credential_link).is_some(),
             dnt: get_i32_value(&record, cols.dnt),
+            last_logon_ts_epoch,
+            when_created_epoch,
             has_nt_hash: has_nt,
             has_lm_hash: has_lm,
         });

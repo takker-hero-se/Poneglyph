@@ -173,20 +173,17 @@ impl AnomalyRule for StaleAccounts {
 
     fn evaluate(&self, users: &[AdUser], _: &[AdComputer], _: &[AdGroup],
                 _: &HashMap<String, Vec<AceEntry>>) -> Vec<AffectedObject> {
-        let threshold = (chrono::Utc::now() - chrono::Duration::days(90))
-            .format("%Y-%m-%d %H:%M:%S UTC")
-            .to_string();
+        // Compare epoch integers, not formatted date strings — lexical ordering of
+        // the date string only happens to agree with chronology for the fixed-width
+        // format and would break silently if the format ever changed.
+        let threshold_epoch = (chrono::Utc::now() - chrono::Duration::days(90)).timestamp();
 
         users.iter()
             .filter(|u| {
                 if !u.enabled { return false; }
-                match &u.last_logon_timestamp {
-                    Some(ts) => ts.as_str() < threshold.as_str(),
-                    None => {
-                        u.when_created.as_ref()
-                            .map(|c| c.as_str() < threshold.as_str())
-                            .unwrap_or(false)
-                    }
+                match u.last_logon_ts_epoch {
+                    Some(ts) => ts < threshold_epoch,
+                    None => u.when_created_epoch.map(|c| c < threshold_epoch).unwrap_or(false),
                 }
             })
             .map(|u| AffectedObject {
@@ -379,15 +376,12 @@ impl AnomalyRule for RecentlyCreatedAccounts {
 
     fn evaluate(&self, users: &[AdUser], _: &[AdComputer], _: &[AdGroup],
                 _: &HashMap<String, Vec<AceEntry>>) -> Vec<AffectedObject> {
-        let threshold = (chrono::Utc::now() - chrono::Duration::days(30))
-            .format("%Y-%m-%d %H:%M:%S UTC")
-            .to_string();
+        // Numeric epoch comparison (see StaleAccounts) rather than lexical date strings.
+        let threshold_epoch = (chrono::Utc::now() - chrono::Duration::days(30)).timestamp();
 
         users.iter()
             .filter(|u| {
-                u.when_created.as_ref()
-                    .map(|c| c.as_str() > threshold.as_str())
-                    .unwrap_or(false)
+                u.when_created_epoch.map(|c| c > threshold_epoch).unwrap_or(false)
             })
             .map(|u| AffectedObject {
                 name: u.sam_account_name.clone(),

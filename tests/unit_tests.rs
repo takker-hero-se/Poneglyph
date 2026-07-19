@@ -509,6 +509,17 @@ mod uac_tests {
         let flags = describe_uac(0x40000); // SMARTCARD_REQUIRED
         assert!(flags.contains(&"SMARTCARD_REQUIRED"));
     }
+
+    /// Test newly-wired security-relevant flags (RODC, DES-only, interdomain trust, homedir).
+    #[test]
+    fn test_uac_extended_flags() {
+        // PARTIAL_SECRETS_ACCOUNT | USE_DES_KEY_ONLY | INTERDOMAIN_TRUST_ACCOUNT | HOMEDIR_REQUIRED
+        let flags = describe_uac(0x4000000 | 0x200000 | 0x0800 | 0x0008);
+        assert!(flags.contains(&"PARTIAL_SECRETS (RODC)"));
+        assert!(flags.contains(&"USE_DES_KEY_ONLY"));
+        assert!(flags.contains(&"INTERDOMAIN_TRUST"));
+        assert!(flags.contains(&"HOMEDIR_REQUIRED"));
+    }
 }
 
 // ==================== Group Type Tests ====================
@@ -747,6 +758,8 @@ mod anomaly_tests {
             has_sid_history: false,
             has_key_credential_link: false,
             dnt: None,
+            last_logon_ts_epoch: None,
+            when_created_epoch: None,
             has_nt_hash: true,
             has_lm_hash: false,
         }
@@ -824,6 +837,26 @@ mod anomaly_tests {
         assert!(anom003.is_some(), "ANOM-003 should fire");
         assert_eq!(anom003.unwrap().affected_objects.len(), 1);
         assert_eq!(anom003.unwrap().affected_objects[0].name, "admin");
+    }
+
+    /// Test ANOM-010: RecentlyCreated flags accounts by numeric epoch, not date strings.
+    #[test]
+    fn test_recently_created_numeric() {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64;
+
+        let mut recent = make_user("recent", 0x200, true);
+        recent.when_created_epoch = Some(now - 5 * 86400);  // 5 days ago -> within 30d window
+        let mut old = make_user("old", 0x200, true);
+        old.when_created_epoch = Some(now - 60 * 86400);    // 60 days ago -> outside window
+
+        let findings = run_all_rules(&[recent, old], &[], &[], &HashMap::new()).unwrap();
+
+        let anom010 = findings.iter().find(|f| f.rule_id == "ANOM-010");
+        assert!(anom010.is_some(), "ANOM-010 should fire");
+        let f = anom010.unwrap();
+        assert_eq!(f.affected_objects.len(), 1, "only the recently-created account should flag");
+        assert_eq!(f.affected_objects[0].name, "recent");
     }
 
     /// Test ANOM-006: Unconstrained Delegation on non-DC computer.
@@ -1090,6 +1123,8 @@ mod bloodhound_tests {
             has_sid_history: false,
             has_key_credential_link: false,
             dnt: None,
+            last_logon_ts_epoch: None,
+            when_created_epoch: None,
             has_nt_hash: true,
             has_lm_hash: false,
         }
@@ -1272,6 +1307,8 @@ mod csv_tests {
             has_sid_history: false,
             has_key_credential_link: false,
             dnt: None,
+            last_logon_ts_epoch: None,
+            when_created_epoch: None,
             has_nt_hash: false,
             has_lm_hash: false,
         }
@@ -1464,6 +1501,8 @@ mod graph_tests {
             has_sid_history: false,
             has_key_credential_link: false,
             dnt: None,
+            last_logon_ts_epoch: None,
+            when_created_epoch: None,
             has_nt_hash: true,
             has_lm_hash: false,
         }

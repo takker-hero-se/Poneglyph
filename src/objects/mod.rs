@@ -137,20 +137,31 @@ pub fn filetime_to_epoch(filetime: i64) -> Option<i64> {
 pub fn describe_uac(uac: u32) -> Vec<&'static str> {
     use crate::schema::uac::*;
 
+    // Emitted in bit order. Existing labels (DONT_REQ_PREAUTH, PASSWD_NOT_REQUIRED,
+    // DONT_EXPIRE_PASSWORD, TRUSTED_TO_AUTH_FOR_DELEG, TRUSTED_FOR_DELEGATION) are
+    // matched by string in output/bloodhound.rs — do NOT rename them.
     let mut flags = Vec::new();
-    if uac & ACCOUNTDISABLE != 0       { flags.push("DISABLED"); }
-    if uac & LOCKOUT != 0              { flags.push("LOCKED"); }
-    if uac & PASSWD_NOTREQD != 0       { flags.push("PASSWD_NOT_REQUIRED"); }
-    if uac & NORMAL_ACCOUNT != 0       { flags.push("NORMAL_ACCOUNT"); }
+    if uac & SCRIPT != 0                    { flags.push("SCRIPT"); }
+    if uac & ACCOUNTDISABLE != 0            { flags.push("DISABLED"); }
+    if uac & HOMEDIR_REQUIRED != 0          { flags.push("HOMEDIR_REQUIRED"); }
+    if uac & LOCKOUT != 0                   { flags.push("LOCKED"); }
+    if uac & PASSWD_NOTREQD != 0            { flags.push("PASSWD_NOT_REQUIRED"); }
+    if uac & PASSWD_CANT_CHANGE != 0        { flags.push("PASSWD_CANT_CHANGE"); }
+    if uac & ENCRYPTED_TEXT_PWD_ALLOWED != 0 { flags.push("ENCRYPTED_TEXT_PWD_ALLOWED"); }
+    if uac & NORMAL_ACCOUNT != 0            { flags.push("NORMAL_ACCOUNT"); }
+    if uac & INTERDOMAIN_TRUST_ACCOUNT != 0 { flags.push("INTERDOMAIN_TRUST"); }
     if uac & WORKSTATION_TRUST_ACCOUNT != 0 { flags.push("WORKSTATION_TRUST"); }
-    if uac & SERVER_TRUST_ACCOUNT != 0 { flags.push("SERVER_TRUST (DC)"); }
-    if uac & DONT_EXPIRE_PASSWORD != 0 { flags.push("DONT_EXPIRE_PASSWORD"); }
-    if uac & SMARTCARD_REQUIRED != 0   { flags.push("SMARTCARD_REQUIRED"); }
-    if uac & TRUSTED_FOR_DELEGATION != 0 { flags.push("TRUSTED_FOR_DELEGATION"); }
-    if uac & NOT_DELEGATED != 0        { flags.push("NOT_DELEGATED"); }
-    if uac & DONT_REQ_PREAUTH != 0     { flags.push("DONT_REQ_PREAUTH"); }
-    if uac & PASSWORD_EXPIRED != 0     { flags.push("PASSWORD_EXPIRED"); }
+    if uac & SERVER_TRUST_ACCOUNT != 0      { flags.push("SERVER_TRUST (DC)"); }
+    if uac & DONT_EXPIRE_PASSWORD != 0      { flags.push("DONT_EXPIRE_PASSWORD"); }
+    if uac & MNS_LOGON_ACCOUNT != 0         { flags.push("MNS_LOGON_ACCOUNT"); }
+    if uac & SMARTCARD_REQUIRED != 0        { flags.push("SMARTCARD_REQUIRED"); }
+    if uac & TRUSTED_FOR_DELEGATION != 0    { flags.push("TRUSTED_FOR_DELEGATION"); }
+    if uac & NOT_DELEGATED != 0             { flags.push("NOT_DELEGATED"); }
+    if uac & USE_DES_KEY_ONLY != 0          { flags.push("USE_DES_KEY_ONLY"); }
+    if uac & DONT_REQ_PREAUTH != 0          { flags.push("DONT_REQ_PREAUTH"); }
+    if uac & PASSWORD_EXPIRED != 0          { flags.push("PASSWORD_EXPIRED"); }
     if uac & TRUSTED_TO_AUTH_FOR_DELEGATION != 0 { flags.push("TRUSTED_TO_AUTH_FOR_DELEG"); }
+    if uac & PARTIAL_SECRETS_ACCOUNT != 0   { flags.push("PARTIAL_SECRETS (RODC)"); }
     flags
 }
 
