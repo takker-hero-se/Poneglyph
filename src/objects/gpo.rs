@@ -16,7 +16,10 @@ pub struct AdGpo {
     pub when_created: Option<String>,
     pub when_changed: Option<String>,
 
+    /// DNT (internal database key). Reserved for DNT-based resolution (see AdGroup,
+    /// whose dnt drives membership); not read for GPOs yet.
     #[serde(skip_serializing)]
+    #[allow(dead_code)]
     pub dnt: Option<i32>,
 }
 

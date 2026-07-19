@@ -42,8 +42,11 @@ pub struct AdUser {
     /// Whether msDS-KeyCredentialLink is present
     pub has_key_credential_link: bool,
 
-    /// DNT (internal database key) - used for relationship resolution
+    /// DNT (internal database key). Kept for symmetry with AdGroup/AdComputer (whose
+    /// dnt drives membership resolution); users are resolved by SID, so this is not
+    /// read yet — reserved for DNT-based user resolution.
     #[serde(skip_serializing)]
+    #[allow(dead_code)]
     pub dnt: Option<i32>,
 
     /// Unix epoch (seconds) of last_logon_timestamp / when_created — internal, used
@@ -78,7 +81,6 @@ struct ColumnIndices {
     logon_count: Option<i32>,
     bad_pwd_count: Option<i32>,
     spn: Option<i32>,
-    object_category: Option<i32>,
     unicode_pwd: Option<i32>,
     dbcs_pwd: Option<i32>,
     sid_history: Option<i32>,
@@ -105,7 +107,6 @@ impl ColumnIndices {
             logon_count: schema::find_column_index(table, "ATTj589993"),
             bad_pwd_count: schema::find_column_index(table, "ATTj589836"),
             spn: schema::find_column_index(table, "ATTm590443"),  // servicePrincipalName (OID .619)
-            object_category: schema::find_column_index(table, "ATTb590606"),
             unicode_pwd: schema::find_column_index(table, "ATTk589914"),
             dbcs_pwd: schema::find_column_index(table, "ATTk589879"),
             sid_history: schema::find_column_index(table, "ATTr590433"),

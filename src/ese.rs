@@ -68,7 +68,9 @@ impl NtdsDatabase {
         })
     }
 
-    /// Get a reference to the underlying EseDb.
+    /// Get a reference to the underlying EseDb. (Reserved public API for library
+    /// consumers needing raw ESE access; not used internally.)
+    #[allow(dead_code)]
     pub fn db(&self) -> &EseDb {
         &self.db
     }

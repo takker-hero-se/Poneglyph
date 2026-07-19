@@ -28,7 +28,10 @@ pub struct AdComputer {
     pub primary_group_id: Option<i32>,
     pub is_dc: bool,
 
+    /// DNT (internal database key). Reserved for DNT-based resolution (see AdGroup,
+    /// whose dnt drives membership); not read for computers yet.
     #[serde(skip_serializing)]
+    #[allow(dead_code)]
     pub dnt: Option<i32>,
 }
 

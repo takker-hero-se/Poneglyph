@@ -4,6 +4,12 @@ use std::sync::LazyLock;
 /// Static mapping of ATT codes to LDAP attribute names.
 /// Format in ESE: ATT + <syntax_code> + <attribute_id>
 ///   syntax codes: j=Integer(32), m=String, k/r=Binary, q/l=LargeInt(64), b=Boolean
+///
+/// Reserved reference data + public API for ATT<->LDAP-name translation. The tool's
+/// own extraction path resolves columns by raw ATT code (find_column_index), so this
+/// table and its accessors below are not called internally; kept for library consumers
+/// and a future human-readable-attribute-name feature.
+#[allow(dead_code)]
 static ATT_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
     let mut m = HashMap::new();
 
@@ -98,12 +104,14 @@ static ATT_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(||
     m
 });
 
-/// Resolve an ATT column name to its LDAP attribute name.
+/// Resolve an ATT column name to its LDAP attribute name. (Reserved API — see ATT_MAP.)
+#[allow(dead_code)]
 pub fn resolve_att_name(att_code: &str) -> Option<&'static str> {
     ATT_MAP.get(att_code).copied()
 }
 
-/// Get the full ATT code mapping.
+/// Get the full ATT code mapping. (Reserved API — see ATT_MAP.)
+#[allow(dead_code)]
 pub fn att_map() -> &'static HashMap<&'static str, &'static str> {
     &ATT_MAP
 }
@@ -124,6 +132,8 @@ pub fn find_column_index(table: &libesedb::Table, att_code: &str) -> Option<i32>
 }
 
 /// Find column index by LDAP attribute name (searches through ATT mapping).
+/// (Reserved API — see ATT_MAP; internal code uses find_column_index by ATT code.)
+#[allow(dead_code)]
 pub fn find_column_by_ldap_name(table: &libesedb::Table, ldap_name: &str) -> Option<i32> {
     // Find the ATT code for this LDAP name
     for (att, ldap) in ATT_MAP.iter() {
