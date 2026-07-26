@@ -1,7 +1,20 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use libesedb::EseDb;
 use serde::Serialize;
 use std::path::Path;
+
+/// Convert a filesystem path to the string form libesedb's file layer expects.
+/// On Windows, libbfio rejects forward-slash separators, so a Unix-style path
+/// (e.g. "C:/dev/ntds.dit" passed from Git-Bash/WSL/scripts) is normalized to
+/// backslashes; otherwise libesedb fails with an opaque "unable to open file".
+pub fn libesedb_path(path: &Path) -> Result<String> {
+    let s = path.to_str()
+        .with_context(|| format!("Path is not valid UTF-8: {}", path.display()))?;
+    #[cfg(windows)]
+    { Ok(s.replace('/', "\\")) }
+    #[cfg(not(windows))]
+    { Ok(s.to_string()) }
+}
 
 /// Information about a single table in the database.
 #[derive(Debug, Serialize)]
@@ -25,11 +38,20 @@ pub struct NtdsDatabase {
 impl NtdsDatabase {
     /// Open an NTDS.dit file for reading.
     pub fn open(path: &Path) -> Result<Self> {
-        let path_str = path.to_str()
-            .context("Invalid path encoding")?;
+        // Clear error for a missing/unreadable file rather than libesedb's opaque
+        // open failure. (Path::exists handles either separator on Windows.)
+        if !path.exists() {
+            bail!("ESE database not found: {}", path.display());
+        }
 
-        let db = EseDb::open(path_str)
-            .context(format!("Failed to open ESE database: {}", path.display()))?;
+        let path_str = libesedb_path(path)?;
+
+        let db = EseDb::open(&path_str)
+            .with_context(|| format!(
+                "Failed to open ESE database: {path_str} \
+                 (if it is a valid ESE/NTDS.dit, it may be a Dirty-Shutdown capture \
+                 needing `esentutl /r` soft-recovery on a working copy first)"
+            ))?;
 
         Ok(Self { db })
     }

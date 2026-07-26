@@ -1817,3 +1817,30 @@ mod acl_object_ace_tests {
         assert_eq!(result[0].right_name, "WriteDacl");
     }
 }
+
+// ==================== ESE Path Handling Tests ====================
+
+mod ese_tests {
+    use poneglyph_lib::ese::{libesedb_path, NtdsDatabase};
+    use std::path::{Path, MAIN_SEPARATOR};
+
+    /// On Windows, forward-slash paths (from Git-Bash/WSL) must be normalized —
+    /// libesedb's file layer rejects '/', failing with an opaque "unable to open".
+    #[cfg(windows)]
+    #[test]
+    fn test_libesedb_path_normalizes_forward_slashes() {
+        let out = libesedb_path(Path::new("C:/dev/aapf/ntds.dit")).unwrap();
+        assert!(!out.contains('/'), "forward slashes must be normalized on Windows: {out}");
+        let expected = ["C:", "dev", "aapf", "ntds.dit"].join(&MAIN_SEPARATOR.to_string());
+        assert_eq!(out, expected);
+    }
+
+    /// A missing file yields a clear "not found" error, not libesedb's opaque failure.
+    #[test]
+    fn test_open_missing_file_clear_error() {
+        let result = NtdsDatabase::open(Path::new("definitely/does/not/exist.dit"));
+        assert!(result.is_err());
+        let msg = result.err().map(|e| e.to_string()).unwrap_or_default();
+        assert!(msg.contains("not found"), "unexpected error: {msg}");
+    }
+}
