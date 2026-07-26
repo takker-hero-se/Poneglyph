@@ -1822,6 +1822,22 @@ mod ese_tests {
         assert_eq!(out, expected);
     }
 
+    /// sAMAccountType classifies group/alias objects (which lack userAccountControl
+    /// and would otherwise leak into user extraction) vs user/machine/trust accounts.
+    #[test]
+    fn test_is_group_sam_account_type() {
+        use poneglyph_lib::objects::user::is_group_sam_account_type;
+        // Group / alias objects -> excluded from user extraction.
+        assert!(is_group_sam_account_type(0x1000_0000u32 as i32)); // SAM_GROUP_OBJECT
+        assert!(is_group_sam_account_type(0x1000_0001u32 as i32)); // SAM_NON_SECURITY_GROUP
+        assert!(is_group_sam_account_type(0x2000_0000u32 as i32)); // SAM_ALIAS_OBJECT (builtin)
+        assert!(is_group_sam_account_type(0x2000_0001u32 as i32)); // SAM_NON_SECURITY_ALIAS
+        // Account objects -> kept.
+        assert!(!is_group_sam_account_type(0x3000_0000u32 as i32)); // SAM_NORMAL_USER_ACCOUNT
+        assert!(!is_group_sam_account_type(0x3000_0001u32 as i32)); // SAM_MACHINE_ACCOUNT
+        assert!(!is_group_sam_account_type(0x3000_0002u32 as i32)); // SAM_TRUST_ACCOUNT
+    }
+
     /// A missing file yields a clear "not found" error, not libesedb's opaque failure.
     #[test]
     fn test_open_missing_file_clear_error() {

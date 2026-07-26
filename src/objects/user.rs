@@ -86,6 +86,7 @@ struct ColumnIndices {
     sid_history: Option<i32>,
     key_credential_link: Option<i32>,
     dnt: Option<i32>,
+    sam_account_type: Option<i32>,
 }
 
 impl ColumnIndices {
@@ -112,8 +113,18 @@ impl ColumnIndices {
             sid_history: schema::find_column_index(table, "ATTr590433"),
             key_credential_link: schema::find_column_index(table, "ATTk590516"),
             dnt: schema::find_column_index(table, "DNT_col"),
+            sam_account_type: schema::find_column_index(table, "ATTj590126"), // sAMAccountType (OID .302)
         }
     }
+}
+
+/// True if a sAMAccountType value denotes a group or alias object (which lack a
+/// userAccountControl attribute and would otherwise leak into user extraction as
+/// UAC=0 "enabled users"). Group=0x1000_0000, Alias/builtin=0x2000_0000 (and their
+/// non-security variants); user/machine/trust accounts are 0x3000_0000+.
+pub fn is_group_sam_account_type(sat: i32) -> bool {
+    let high = (sat as u32) & 0xF000_0000;
+    high == 0x1000_0000 || high == 0x2000_0000
 }
 
 /// Extract all user accounts from the datatable.
@@ -150,13 +161,21 @@ pub fn extract_users(db: &NtdsDatabase, include_disabled: bool) -> Result<Vec<Ad
             Err(_) => continue,
         };
 
-        // Check if this is a user object by examining objectCategory
-        // Users have objectCategory pointing to "Person" class
-        // We also check for sAMAccountName presence as a simpler heuristic
         let sam = match get_string_value(&record, cols.sam_account_name) {
             Some(s) if !s.is_empty() => s,
             _ => continue,
         };
+
+        // Exclude group/alias objects: they carry a sAMAccountName but no
+        // userAccountControl, so they would otherwise pass the UAC checks below
+        // (UAC read as 0 -> "enabled") and leak into the user list. When
+        // sAMAccountType is absent we do NOT skip, to avoid dropping a real user
+        // whose column failed to resolve.
+        if let Some(sat) = get_i32_value(&record, cols.sam_account_type) {
+            if is_group_sam_account_type(sat) {
+                continue;
+            }
+        }
 
         // Check UAC to determine if this is a user account (not computer/trust)
         let uac_value = get_i32_value(&record, cols.uac).unwrap_or(0) as u32;
