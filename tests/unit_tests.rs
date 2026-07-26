@@ -180,19 +180,6 @@ mod crypto_tests {
         );
     }
 
-    /// AES-format decrypt_hash must reject a non-block-aligned ciphertext rather
-    /// than silently decrypting a truncated prefix and emitting a wrong hash.
-    #[test]
-    fn test_decrypt_hash_aes_rejects_unaligned() {
-        let pek = [0u8; 16];
-        // marker 0x13 (AES) + 8-byte header total, 16-byte IV, then 17 bytes of
-        // ciphertext (17 % 16 != 0). Total 41 bytes (>= 40 length guard).
-        let mut blob = vec![0u8; 41];
-        blob[0] = 0x13;
-        let result = poneglyph_lib::crypto::decrypt_hash(&blob, &pek, 500);
-        assert!(result.is_none(), "AES branch must reject non-16-aligned ciphertext");
-    }
-
     /// rc4_crypt must not panic (divide-by-zero) on an empty key.
     #[test]
     fn test_rc4_crypt_empty_key_no_panic() {

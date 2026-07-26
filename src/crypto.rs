@@ -135,14 +135,16 @@ pub fn decrypt_hash(encrypted: &[u8], pek: &[u8; 16], rid: u32) -> Option<[u8; 1
         }
         let salt = &encrypted[8..24];
         let data = &encrypted[24..];
-        // AES-CBC requires block-aligned input. A standard NT/LM hash blob is
-        // exactly one 16-byte block; a non-aligned length means a malformed or
-        // unexpected record. Reject it rather than silently decrypting a
-        // truncated prefix and emitting a plausible-but-wrong hash (evidence integrity).
-        if data.is_empty() || data.len() % 16 != 0 {
+        // The NTDS AES encrypted-hash region is NOT 16-byte aligned in practice
+        // (verified against real WS2019/WS2025 DBs), so decrypt the whole
+        // block-aligned prefix with AES-CBC and take the first block, which holds
+        // the (still DES-layered) hash. A strict "reject if not %16" check here
+        // breaks ALL real AES-format decryption — do not "harden" it away.
+        let block_len = (data.len() / 16) * 16;
+        if block_len == 0 {
             return None;
         }
-        let decrypted = aes_128_cbc_decrypt(pek, salt, data).ok()?;
+        let decrypted = aes_128_cbc_decrypt(pek, salt, &data[..block_len]).ok()?;
         if decrypted.len() < 16 {
             return None;
         }
