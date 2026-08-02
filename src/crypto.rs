@@ -130,11 +130,16 @@ pub fn decrypt_hash(encrypted: &[u8], pek: &[u8; 16], rid: u32) -> Option<[u8; 1
     let pek_decrypted = if version_marker == 0x00000013 {
         // AES (Win2016+): marker = 0x13 (decimal 19)
         // Structure: Header(8) + IV(16) + EncryptedHash(variable)
-        if encrypted.len() < 40 {
+        if encrypted.len() < 44 {
             return None;
         }
         let salt = &encrypted[8..24];
-        let data = &encrypted[24..];
+        // CRYPTED_HASHW16 layout: Header(8) + KeyMaterial/IV(16) + Unknown(4) +
+        // EncryptedHash. The AES ciphertext begins at offset 28, NOT 24: the
+        // legacy RC4 CRYPTED_HASH layout has no Unknown field, so reusing offset
+        // 24 here shifts the ciphertext by 4 bytes and corrupts EVERY AES-format
+        // NT/LM hash value (verified against impacket secretsdump).
+        let data = &encrypted[28..];
         // The NTDS AES encrypted-hash region is NOT 16-byte aligned in practice
         // (verified against real WS2019/WS2025 DBs), so decrypt the whole
         // block-aligned prefix with AES-CBC and take the first block, which holds
