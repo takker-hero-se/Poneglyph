@@ -283,6 +283,8 @@ patch -p1 < /path/to/poneglyph/libesedb-patches/zzz-fix-ws2025-btree.patch
 # 3. Cargo.toml の [patch.crates-io] をアンコメントしてパスを設定
 ```
 
+`itagState` パッチはページサイズではなく ESE フォーマットリビジョン（`>= 0x010E`、Microsoft のエンジンが予約ページタグを導入したリビジョン）で判定します。そのため Windows Server 2025 と Windows 11 24H2 以降が書き出す 16KB・4KB のデータベースにも適用されます。Poneglyph 0.2.4 で閾値を観測値 `0x0122` からエンジンの `0x010E` へ移しました。本家 libesedb のリリース 20260704 は `0x0122` で同等の修正を持ちます。
+
 パッチなしの場合、Windows Server 2019 以前（8KB ページ）のみサポートします。
 
 ## トラブルシューティング

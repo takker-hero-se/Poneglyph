@@ -1,8 +1,20 @@
 --- libesedb/libesedb_page_header.c
 +++ libesedb/libesedb_page_header.c
-@@ -241,1 +241,4 @@
--	 page_header->available_page_tag );
-+	 page_header->available_page_tag );
+@@ -241,1 +241,16 @@
+ 	 page_header->available_page_tag );
 +
-+	/* WS2025+ itagState format: lower 12 bits = tag count, upper 4 bits = ctagReserved */
-+	page_header->available_page_tag &= 0x0FFF;
++	/* ESE format revision >= 0x010E reinterprets the available page tag
++	 * field as itagState: the upper 4 bits are reserved (ctagReserved) and
++	 * the lower 12 bits contain the actual number of page tags. The threshold
++	 * is the engine's own: Microsoft's sysver.cxx maps JET_efvReservedTags to
++	 * database version 1568.270, i.e. update-major 0x010E. (The lowest
++	 * revision observed in shipped databases is 0x0122, Windows Server 2025
++	 * NTDS.dit, which is also the value upstream libesedb adopted.) Gating on
++	 * the format revision (not the page size) keeps the mask a no-op on every
++	 * database below the threshold, while also covering the 16 KiB and 4 KiB
++	 * databases that a page-size gate would miss.
++	 */
++	if( io_handle->format_revision >= 0x0000010EUL )
++	{
++		page_header->available_page_tag &= 0x0fff;
++	}

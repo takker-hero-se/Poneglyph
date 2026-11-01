@@ -282,6 +282,8 @@ patch -p1 < /path/to/poneglyph/libesedb-patches/zzz-fix-ws2025-btree.patch
 # 3. Uncomment [patch.crates-io] in Cargo.toml and set the path
 ```
 
+The `itagState` patch is gated on the ESE format revision (`>= 0x010E`, the revision at which Microsoft's engine introduces reserved page tags), not on the page size, so it also covers the 16KB and 4KB databases that Windows Server 2025 and Windows 11 24H2+ write. Poneglyph 0.2.4 moved the gate from the observed `0x0122` to the engine's `0x010E`; upstream libesedb release 20260704 carries an equivalent fix at `0x0122`.
+
 Without these patches, Poneglyph supports Windows Server 2019 and earlier (8KB pages) only.
 
 ## Troubleshooting
